@@ -1,0 +1,524 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Jarvis (Aura) | Tradenza{% endblock %}
+
+{% block head %}
+<!-- TradingView Lightweight Charts for Interactive Gamified Learning -->
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="jarvis-layout">
+    
+    <!-- LEFT PANEL: Visual Context / Charts -->
+    <div class="jarvis-visuals card-3d">
+        <div class="visuals-header">
+            <div class="viz-tabs">
+                <button class="viz-tab" data-target="live-chart">Market Context</button>
+                <button class="viz-tab active" data-target="learning-scenario">Interactive Scenario Game</button>
+            </div>
+        </div>
+        
+        <div class="visuals-body" style="position: relative; height: 100%; display: flex; flex-direction: column;">
+            
+            <!-- Default View -->
+            <div id="live-chart" class="viz-content" style="display:none;">
+                <div class="empty-state-mini" style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                    <i data-lucide="line-chart" style="width:48px; height:48px; margin-bottom:16px; opacity:0.5;"></i>
+                    <h3 style="margin-bottom:8px;">Awaiting Context</h3>
+                    <p style="color:var(--t-muted); text-align:center; max-width:300px;">Ask Jarvis to analyze a market or switch to the learning game.</p>
+                </div>
+            </div>
+
+            <!-- Gamified Interactive Scenario View -->
+            <div id="learning-scenario" class="viz-content active" style="display:flex; height:100%; flex-direction:column; background: #0b0e14; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); position: relative;">
+                
+                <!-- Game Header Overlay -->
+                <div style="position: absolute; top: 16px; left: 16px; right: 16px; z-index: 10; display: flex; justify-content: space-between; pointer-events: none;">
+                    <div style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); pointer-events: auto;">
+                        <span style="color: var(--t-muted); font-size: 0.75rem; text-transform: uppercase;">Scenario:</span>
+                        <strong style="color: #fff; font-size: 0.9rem; margin-left: 6px;" id="scenarioTitle">The Fakeout Reversal</strong>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); pointer-events: auto; display: flex; gap: 12px;">
+                        <div>
+                            <span style="color: var(--t-muted); font-size: 0.7rem; text-transform: uppercase; display: block;">Score</span>
+                            <strong style="color: var(--neon-cyan); font-size: 1.1rem; font-family: var(--t-mono);" id="gameScore">0</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--t-muted); font-size: 0.7rem; text-transform: uppercase; display: block;">Streak</span>
+                            <strong style="color: var(--neon-green); font-size: 1.1rem; font-family: var(--t-mono);" id="gameStreak">0🔥</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lightweight Chart Container (Replaced with AI Image) -->
+                <div id="chartImageContainer" style="flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; background: #0b0e14; padding: 20px;">
+                    <img id="scenarioImg" src="{{ url_for('static', filename='img/fakeout.jpg') }}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); object-fit: contain;">
+                </div>
+                
+                <!-- Game Controls -->
+                <div id="gameControls" style="background: rgba(14,20,35,0.9); border-top: 1px solid rgba(255,255,255,0.1); padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+                    <h3 style="margin: 0 0 16px 0; font-size: 1.1rem;">What is your play on this setup?</h3>
+                    <div style="display: flex; gap: 16px; justify-content: center; width: 100%;">
+                        <button class="btn-game" onclick="playTurn('long')" style="background: rgba(0,245,155,0.15); color: var(--neon-green); border-color: rgba(0,245,155,0.4);">
+                            <i data-lucide="trending-up"></i> LONG
+                        </button>
+                        <button class="btn-game" onclick="playTurn('short')" style="background: rgba(255,51,102,0.15); color: var(--neon-red); border-color: rgba(255,51,102,0.4);">
+                            <i data-lucide="trending-down"></i> SHORT
+                        </button>
+                        <button class="btn-game" onclick="playTurn('pass')" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2);">
+                            <i data-lucide="minus"></i> PASS
+                        </button>
+                    </div>
+                </div>
+
+                <div id="gameNextBtn" style="display: none; background: rgba(14,20,35,0.9); border-top: 1px solid rgba(255,255,255,0.1); padding: 20px; text-align: center;">
+                    <button class="btn-primary-3d" onclick="loadNextScenario()">Next Scenario <i data-lucide="arrow-right"></i></button>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: Jarvis Chat -->
+    <div class="jarvis-chat-container card-3d">
+        
+        <div class="jarvis-chat-header">
+            <div class="j-head-left">
+                <div class="aura-avatar" style="width:36px; height:36px;">
+                    <div class="aura-core" style="width:16px; height:16px;"></div>
+                    <div class="aura-ring"></div>
+                </div>
+                <div>
+                    <h3 style="margin:0; font-size:1.1rem;">Jarvis</h3>
+                    <span class="status-indicator online">Buddy & Coach</span>
+                </div>
+            </div>
+            <div class="j-head-right">
+                <button class="icon-btn" id="clearChatBtn" title="Clear Memory">
+                    <i data-lucide="rotate-ccw"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="jarvis-chat-thread" id="coachThread">
+            
+            <div class="coach-msg coach-msg--aura">
+                <span class="coach-msg-label">Jarvis</span>
+                <div class="coach-msg-body">
+                    Welcome to the Simulation Simulator.<br><br>
+                    I've loaded a live candlestick chart on the left. Analyze the price action, and tell me: are you going long, short, or passing? Let's see how good your edge really is.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="jarvis-chat-composer">
+            <form id="coachForm" class="composer-form" data-endpoint="/coach/chat" data-clear-endpoint="/coach/clear">
+                <button type="button" class="composer-btn mic-btn" id="micBtn">
+                    <i data-lucide="mic"></i>
+                </button>
+                <input type="text" id="coachInput" class="composer-input" placeholder="Message Jarvis..." autocomplete="off">
+                <button type="submit" class="composer-btn send-btn">
+                    <i data-lucide="send"></i>
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+/* Jarvis Immersive Layout */
+.jarvis-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 24px;
+    height: calc(100vh - 140px);
+    margin: -10px 0;
+}
+@media (max-width: 1024px) {
+    .jarvis-layout { grid-template-columns: 1fr; height: auto; }
+}
+
+.jarvis-visuals, .jarvis-chat-container {
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px !important;
+    background: rgba(14, 20, 35, 0.85) !important;
+}
+
+/* Visuals Left Panel */
+.visuals-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.viz-tabs {
+    display: flex;
+    gap: 12px;
+}
+.viz-tab {
+    background: transparent;
+    border: none;
+    color: var(--t-muted);
+    font-weight: 600;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+.viz-tab.active {
+    background: rgba(0, 210, 255, 0.1);
+    color: var(--neon-cyan);
+}
+.visuals-body {
+    flex: 1;
+    padding: 24px;
+    overflow: hidden;
+}
+
+.btn-game {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border-width: 1px;
+    border-style: solid;
+    font-weight: 800;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-game:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+.btn-game:active {
+    transform: translateY(1px);
+}
+
+/* Chat Right Panel */
+.jarvis-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.2);
+}
+.j-head-left { display: flex; align-items: center; gap: 12px; }
+.j-head-right { display: flex; gap: 8px; }
+
+.jarvis-chat-thread {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.coach-msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+.coach-msg--aura { align-self: flex-start; }
+.coach-msg--user { align-self: flex-end; align-items: flex-end; }
+
+.coach-msg-label {
+    font-size: 0.75rem;
+    color: var(--t-muted);
+    margin-bottom: 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.coach-msg-body {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 14px 18px;
+    border-radius: 16px 16px 16px 2px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #e2e8f0;
+}
+.coach-msg--aura .coach-msg-body {
+    background: rgba(0, 210, 255, 0.08);
+    border-color: rgba(0, 210, 255, 0.3);
+}
+.coach-msg--user .coach-msg-body {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    border: none;
+    border-radius: 16px 16px 2px 16px;
+    color: #fff;
+}
+
+.jarvis-chat-composer {
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.2);
+}
+.composer-form {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 99px;
+    padding: 6px;
+}
+.composer-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--t-muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+}
+.composer-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.composer-btn.send-btn { background: var(--neon-cyan); color: #000; }
+.composer-btn.send-btn:hover { background: #fff; }
+.composer-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 10px;
+    font-size: 0.95rem;
+    outline: none;
+}
+.composer-input::placeholder { color: rgba(255,255,255,0.3); }
+
+/* Aura Avatar Reuse */
+.aura-avatar { position: relative; display: flex; align-items: center; justify-content: center; }
+.aura-core { background: var(--neon-cyan); border-radius: 50%; box-shadow: 0 0 15px var(--neon-cyan); z-index: 2; }
+.aura-ring { position: absolute; inset: 0; border: 2px solid var(--neon-cyan); border-radius: 50%; animation: aura-pulse 2s infinite; }
+</style>
+
+<script>
+// UI Tab Switching
+document.querySelectorAll('.viz-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.viz-content').forEach(c => c.style.display = 'none');
+        
+        e.target.classList.add('active');
+        document.getElementById(e.target.dataset.target).style.display = 'flex';
+        
+        if(e.target.dataset.target === 'learning-scenario' && window.chart) {
+            window.chart.resize(document.getElementById('tvchart').clientWidth, document.getElementById('tvchart').clientHeight);
+        }
+    });
+});
+
+// Chat Logic & Jarvis Voice Protocol
+const thread = document.getElementById('coachThread');
+const form = document.getElementById('coachForm');
+const input = document.getElementById('coachInput');
+const synth = window.speechSynthesis;
+let jarvisVoice = null;
+
+// Initialize Voice
+function initVoice() {
+    if(!synth) return;
+    const voices = synth.getVoices();
+    // Try to find a robotic/british/deep voice for Jarvis
+    jarvisVoice = voices.find(v => v.name.includes('Google UK English Male')) || 
+                  voices.find(v => v.lang === 'en-GB' || v.lang === 'en-US') || voices[0];
+}
+if(synth && synth.onvoiceschanged !== undefined) {
+    synth.onvoiceschanged = initVoice;
+} else {
+    initVoice();
+}
+
+function speak(text) {
+    if(!synth) return;
+    if(synth.speaking) synth.cancel();
+    
+    // Clean text for speech (remove markdown-like chars)
+    const cleanText = text.replace(/[\*\#\+]/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.voice = jarvisVoice;
+    utterance.rate = 1.05;
+    utterance.pitch = 0.9;
+    utterance.volume = 0.8;
+    synth.speak(utterance);
+}
+
+function appendUserMessage(text) {
+    const div = document.createElement('div');
+    div.className = 'coach-msg coach-msg--user';
+    div.innerHTML = `<span class="coach-msg-label">You</span><div class="coach-msg-body">${text}</div>`;
+    thread.appendChild(div);
+    thread.scrollTop = thread.scrollHeight;
+}
+
+function appendJarvisMessage(text, doSpeak = true) {
+    const div = document.createElement('div');
+    div.className = 'coach-msg coach-msg--aura';
+    div.innerHTML = `<span class="coach-msg-label">Jarvis</span><div class="coach-msg-body">${text}</div>`;
+    thread.appendChild(div);
+    thread.scrollTop = thread.scrollHeight;
+    
+    if(doSpeak) {
+        speak(text);
+        // Visual indicator that Jarvis is speaking
+        const core = document.querySelector('.aura-core');
+        if(core) {
+            core.style.animation = 'pulse 0.2s infinite alternate';
+            core.style.boxShadow = '0 0 30px var(--neon-cyan)';
+            setTimeout(() => {
+                core.style.animation = '';
+                core.style.boxShadow = '0 0 15px var(--neon-cyan)';
+            }, text.length * 50); // rough estimate of speaking time
+        }
+    }
+}
+
+form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const val = input.value.trim();
+    if (!val) return;
+    appendUserMessage(val);
+    input.value = '';
+    
+    // Simple AI simulation logic
+    setTimeout(() => {
+        const responses = [
+            "I am tracking your order flow. Stay disciplined.",
+            "Analyzing market structure. Volume is dropping.",
+            "Do not force a setup here. Wait for confirmation.",
+            "I heard you. But let's focus on the chart game! What's your next move?"
+        ];
+        const res = responses[Math.floor(Math.random() * responses.length)];
+        appendJarvisMessage(res);
+    }, 800);
+});
+
+// GAME LOGIC (TradingView Lightweight Charts)
+let chart;
+
+// Speech Recognition for Mic Button
+const micBtn = document.getElementById('micBtn');
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    
+    micBtn.addEventListener('click', () => {
+        micBtn.style.color = 'var(--neon-red)';
+        micBtn.style.animation = 'pulse 1s infinite';
+        if(window.TradenzaAudio) window.TradenzaAudio.hover();
+        recognition.start();
+    });
+    
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        input.value = transcript;
+        micBtn.style.color = 'var(--t-muted)';
+        micBtn.style.animation = '';
+        if(window.TradenzaAudio) window.TradenzaAudio.click();
+        
+        // Auto-submit after transcription
+        setTimeout(() => {
+            form.dispatchEvent(new Event('submit'));
+        }, 500);
+    };
+    
+    recognition.onerror = () => {
+        micBtn.style.color = 'var(--t-muted)';
+        micBtn.style.animation = '';
+        if(window.TradenzaAudio) window.TradenzaAudio.loss();
+    };
+} else {
+    micBtn.style.display = 'none'; // Hide if browser doesn't support it
+}
+
+let score = 0;
+let streak = 0;
+let currentScenario = 1;
+
+function playTurn(choice) {
+    document.getElementById('gameControls').style.display = 'none';
+    
+    appendUserMessage(\`I chose to go \${choice.toUpperCase()}.\`, false);
+    
+    if (currentScenario === 1) {
+        // Fakeout scenario
+        const correctPlay = 'short';
+        if (choice === correctPlay) {
+            score += 100; streak += 1;
+            if(window.TradenzaAudio) window.TradenzaAudio.win();
+            appendJarvisMessage("Excellent call! As you can see on the chart, price broke above the key resistance line to trap breakout traders, but immediately reversed with a massive bearish engulfing candle. +100 Points.");
+        } else if (choice === 'pass') {
+            score += 20; streak = 0;
+            if(window.TradenzaAudio) window.TradenzaAudio.click();
+            appendJarvisMessage("Not a bad idea to preserve capital, but you missed a prime short setup. It was a classic fakeout as shown by the failed breakout candle.");
+        } else {
+            score -= 50; streak = 0;
+            if(window.TradenzaAudio) window.TradenzaAudio.loss();
+            appendJarvisMessage("Ouch. You bought the fakeout breakout into resistance and got caught in a bull trap. Look at that massive red candle that followed. -50 Points.");
+        }
+        document.getElementById('gameNextBtn').style.display = 'block';
+        
+    } else {
+        // MA Convergence scenario
+        const correctPlay = 'long';
+        if (choice === correctPlay) {
+            score += 100; streak += 1;
+            if(window.TradenzaAudio) window.TradenzaAudio.win();
+            appendJarvisMessage("Perfect execution! The price pulled back precisely to the ascending 50 Moving Average, forming a beautiful bullish rejection. High probability long. +100 Points.");
+        } else if (choice === 'pass') {
+            score += 20; streak = 0;
+            if(window.TradenzaAudio) window.TradenzaAudio.click();
+            appendJarvisMessage("You passed on a textbook setup. Notice the strong bounce off the yellow moving average line? That's your structural entry trigger.");
+        } else {
+            score -= 50; streak = 0;
+            if(window.TradenzaAudio) window.TradenzaAudio.loss();
+            appendJarvisMessage("Critical error. You shorted directly into major structural support at the moving average during an uptrend. Never step in front of a freight train. -50 Points.");
+        }
+        
+        // Hide next button if we're out of scenarios
+        document.getElementById('gameNextBtn').style.display = 'none';
+        setTimeout(() => {
+            appendJarvisMessage("That concludes the current simulation module. Great session.");
+        }, 3000);
+    }
+    
+    document.getElementById('gameScore').innerText = score;
+    document.getElementById('gameStreak').innerText = streak + '🔥';
+}
+
+function loadNextScenario() {
+    currentScenario = 2;
+    document.getElementById('gameNextBtn').style.display = 'none';
+    document.getElementById('gameControls').style.display = 'flex';
+    
+    // Switch Image
+    document.getElementById('scenarioImg').src = "{{ url_for('static', filename='img/maconvergence.jpg') }}";
+    document.getElementById('scenarioTitle').innerText = "Scenario #2: Moving Average Convergence";
+    
+    appendJarvisMessage("Let's try another one. I've loaded a new chart. We have an established uptrend, and price is pulling back to the 50 MA. What's your play here?");
+}
+
+// Initial Jarvis intro
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        appendJarvisMessage("Welcome to the visual simulation. Look at the chart on the left—it's a classic fakeout pattern. Will you go long, short, or pass?");
+    }, 1000);
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,222 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Digital Twin | Tradenza{% endblock %}
+
+{% block content %}
+
+<div class="twin-layout">
+
+    <div class="page-header" style="margin-bottom: 32px;">
+        <span class="text-caption" style="color: var(--neon-cyan); letter-spacing: 2px; text-transform: uppercase; font-weight: 800; font-size: 0.75rem;">TRADENZA INTELLIGENCE</span>
+        <h1 style="font-size: 2.5rem; margin-top: 8px;">Behavioral Genome</h1>
+        <p style="color: var(--t-muted); max-width: 600px;">Your digital twin is a psychological mirror built from your actual trading data. It tracks your evolution, strengths, and hidden behavioral leaks.</p>
+    </div>
+
+    <div class="bento-grid">
+        
+        <!-- Identity Summary -->
+        <div class="bento-item card-3d" style="grid-column: span 12; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(14,20,35,0.9), rgba(10,15,25,0.95));">
+            <div>
+                <h4 style="color: var(--t-muted); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;">Primary Archetype</h4>
+                <h2 style="font-size: 2.5rem; font-weight: 800; color: #fff; margin: 8px 0;">{{ twin.identity.archetype }}</h2>
+                <div style="display: flex; gap: 16px; margin-top: 12px;">
+                    <span style="background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1);">
+                        State: <strong style="color: var(--neon-cyan);">{{ twin.current_state }}</strong>
+                    </span>
+                    <span style="background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1);">
+                        Quality Score: <strong style="color: var(--neon-green);">{{ twin.identity.quality_score }}</strong>
+                    </span>
+                </div>
+            </div>
+            <div style="width: 120px; height: 120px; background: rgba(0, 210, 255, 0.05); border: 2px solid var(--neon-cyan); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(0, 210, 255, 0.2);">
+                <i data-lucide="dna" style="width: 48px; height: 48px; color: var(--neon-cyan);"></i>
+            </div>
+        </div>
+
+        {% if twin.simulation and twin.simulation.has_data %}
+        <!-- Leak Eliminator / Counterfactual -->
+        <div class="bento-item card-3d aura-glow" style="grid-column: span 12;">
+            <div class="bento-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 16px; margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i data-lucide="brain-circuit" style="color: var(--neon-purple);"></i>
+                    <h3 style="margin: 0; color: #fff;">Counterfactual Simulation</h3>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 0.75rem; color: var(--t-muted); text-transform: uppercase;">Recoverable Capital</span>
+                    <h3 style="margin: 0; color: var(--neon-green); font-family: var(--t-mono);">${{ "%.2f"|format(twin.simulation.total_leaked_capital) }}</h3>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);">
+                    <span style="font-size: 0.8rem; color: var(--t-muted); text-transform: uppercase;">Actual P/L</span>
+                    <h2 style="font-family: var(--t-mono); margin: 8px 0; color: {% if twin.simulation.actual_pnl >= 0 %}var(--neon-green){% else %}var(--neon-red){% endif %};">
+                        {{ "%+.2f"|format(twin.simulation.actual_pnl) }}
+                    </h2>
+                    <span style="font-size: 0.8rem; color: var(--t-secondary);">Over {{ twin.simulation.trade_count }} trades</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);">
+                    <span style="font-size: 0.8rem; color: var(--t-muted); text-transform: uppercase;">Tilt-Free Twin</span>
+                    <h2 style="font-family: var(--t-mono); margin: 8px 0; color: var(--neon-cyan);">
+                        +${{ "%.2f"|format(twin.simulation.actual_pnl + twin.simulation.tilt_leak_cost) }}
+                    </h2>
+                    <span style="font-size: 0.8rem; color: var(--t-secondary);">Saved ${{ "%.2f"|format(twin.simulation.tilt_leak_cost) }}</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);">
+                    <span style="font-size: 0.8rem; color: var(--t-muted); text-transform: uppercase;">Fully Disciplined</span>
+                    <h2 style="font-family: var(--t-mono); margin: 8px 0; color: var(--neon-purple);">
+                        +${{ "%.2f"|format(twin.simulation.potential_pnl) }}
+                    </h2>
+                    <span style="font-size: 0.8rem; color: var(--t-secondary);">Maximum potential</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 24px; padding: 16px; background: rgba(168, 85, 247, 0.1); border-left: 4px solid var(--neon-purple); border-radius: 0 12px 12px 0;">
+                <strong style="color: var(--neon-purple); display: block; font-size: 0.85rem; text-transform: uppercase; margin-bottom: 4px;">Diagnostic Prescription</strong>
+                <span style="color: #fff;">{{ twin.simulation.actionable_rule }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Psychological Radar Chart -->
+        <div class="bento-item card-3d" style="grid-column: span 12; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; background: linear-gradient(180deg, rgba(14,20,35,0.4), rgba(10,15,25,0.6));">
+            
+            <!-- Canvas Container -->
+            <div style="position: relative; height: 350px; display: flex; justify-content: center; align-items: center;">
+                <canvas id="twinRadarChart"></canvas>
+            </div>
+
+            <!-- Trait Breakdown -->
+            <div class="traits-list">
+                <div class="bento-header" style="margin-bottom: 24px;">
+                    <h3 style="margin:0; font-size: 1.4rem; color: #fff;">Psychological Topology</h3>
+                    <p style="color: var(--t-muted); font-size: 0.9rem; margin-top: 8px;">A multi-dimensional mapping of your trading behavior based on your execution history.</p>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Discipline -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--t-secondary); text-transform: uppercase; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Discipline</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 100px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: {{ twin.personality.discipline_score }}%; background: var(--neon-cyan); box-shadow: 0 0 8px var(--neon-cyan);"></div>
+                            </div>
+                            <span style="font-family: var(--t-mono); color: var(--neon-cyan); font-weight: bold; width: 30px; text-align: right;">{{ twin.personality.discipline_score }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Patience -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--t-secondary); text-transform: uppercase; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Patience</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 100px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: {{ twin.personality.patience_score }}%; background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green);"></div>
+                            </div>
+                            <span style="font-family: var(--t-mono); color: var(--neon-green); font-weight: bold; width: 30px; text-align: right;">{{ twin.personality.patience_score }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Aggression -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--t-secondary); text-transform: uppercase; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Aggression</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 100px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: {{ twin.personality.aggression_score }}%; background: var(--neon-red); box-shadow: 0 0 8px var(--neon-red);"></div>
+                            </div>
+                            <span style="font-family: var(--t-mono); color: var(--neon-red); font-weight: bold; width: 30px; text-align: right;">{{ twin.personality.aggression_score }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Risk Control -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--t-secondary); text-transform: uppercase; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;">Risk Control</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 100px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: {{ twin.risk_profile.risk_control_score }}%; background: var(--neon-purple); box-shadow: 0 0 8px var(--neon-purple);"></div>
+                            </div>
+                            <span style="font-family: var(--t-mono); color: var(--neon-purple); font-weight: bold; width: 30px; text-align: right;">{{ twin.risk_profile.risk_control_score }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('twinRadarChart');
+    if(!ctx) return;
+    
+    if(typeof Chart === 'undefined') {
+        console.error("Chart.js failed to load.");
+        return;
+    }
+
+    const data = {
+        labels: ['Discipline', 'Patience', 'Aggression', 'Risk Control', 'Execution'],
+        datasets: [{
+            label: 'Trader Topology',
+            data: [
+                {{ twin.personality.discipline_score|default(50) }},
+                {{ twin.personality.patience_score|default(50) }},
+                {{ twin.personality.aggression_score|default(50) }},
+                {{ twin.risk_profile.risk_control_score|default(50) }},
+                {{ twin.identity.quality_score|default(50) }}
+            ],
+            backgroundColor: 'rgba(0, 210, 255, 0.15)',
+            borderColor: '#00d2ff',
+            borderWidth: 2,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#00d2ff',
+            pointHoverBackgroundColor: '#00d2ff',
+            pointHoverBorderColor: '#fff',
+            pointRadius: 4,
+            pointHoverRadius: 6
+        }]
+    };
+
+    const config = {
+        type: 'radar',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(255,255,255,0.1)' },
+                    grid: { color: 'rgba(255,255,255,0.1)', circular: true },
+                    pointLabels: { 
+                        color: '#b1b6c6', 
+                        font: { size: 12, family: 'Inter', weight: '600' }
+                    },
+                    ticks: { display: false, min: 0, max: 100 }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(14,20,35,0.9)',
+                    titleColor: '#00d2ff',
+                    bodyColor: '#fff',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false
+                }
+            }
+        }
+    };
+
+    new Chart(ctx, config);
+});
+</script>
+
+    </div>
+
+</div>
+
+{% endblock %}

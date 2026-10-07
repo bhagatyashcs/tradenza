@@ -1,0 +1,21 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}
+Edit Trade
+{% endblock %}
+
+{% block content %}
+
+<h2>Edit Trade</h2>
+
+<hr>
+
+{% include "trade/_trade_form.html" %}
+
+<br>
+
+<a href="{{ url_for('trade.trade_details', trade_id=trade.id) }}">
+    ← Cancel
+</a>
+
+{% endblock %}

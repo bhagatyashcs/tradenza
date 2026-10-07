@@ -1,0 +1,108 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}
+    Import Trades CSV — Tradenza
+{% endblock %}
+
+{% block page_title %}
+    Import Trades
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; padding-bottom: 50px;">
+
+    <div class="page-header" style="margin-bottom: 24px;">
+        <div>
+            <h2>Import Trades from CSV</h2>
+            <p style="opacity: .75; margin-top: 4px;">
+                Bulk upload historical trade data from spreadsheets or brokers into your Tradenza journal.
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('trade.trade_history') }}" class="btn btn-secondary">
+                ← Back to Journal
+            </a>
+        </div>
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; font-weight: 600; font-size: 0.9rem; {% if category == 'success' %}background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);{% else %}background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- UPLOAD CARD -->
+    <div class="dashboard-card" style="border: 1px solid rgba(56, 189, 248, 0.3); background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85)); border-radius: 14px; padding: 26px; margin-bottom: 24px;">
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for('trade.import_trades') }}">
+            {{ form.hidden_tag() }}
+            <div style="border: 2px dashed rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 36px 20px; text-align: center; background: rgba(0,0,0,0.2); margin-bottom: 20px;">
+                <div style="font-size: 2.2rem; margin-bottom: 12px;">📥</div>
+                <h3 style="margin: 0 0 8px 0; color: #fff; font-size: 1.15rem;">Select your CSV file</h3>
+                <p style="color: #94a3b8; font-size: 0.85rem; max-width: 440px; margin: 0 auto 16px auto;">
+                    Upload any standard trade spreadsheet or broker export file (.csv).
+                </p>
+                <input type="file" name="csv_file" accept=".csv" required
+                       style="display: inline-block; padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.06); color: #cbd5e1; border: 1px solid var(--border);" />
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <a href="{{ url_for('trade.export_trades') }}" style="font-size: 0.85rem; color: #38bdf8; text-decoration: none;">
+                    Need a template? Download your current Export CSV ↗
+                </a>
+                <button type="submit" class="btn" style="background: #0284c7; color: #fff; font-weight: 700; padding: 10px 24px; border-radius: 8px;">
+                    ⚡ Start Import
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- COLUMN SPECIFICATION GUIDE -->
+    <div class="dashboard-card" style="border: 1px solid rgba(255,255,255,0.08); background: rgba(15, 23, 42, 0.7); border-radius: 14px; padding: 22px;">
+        <h4 style="margin: 0 0 12px 0; color: #fff; font-size: 1rem;">Supported CSV Columns</h4>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 14px;">
+            The importer automatically detects standard headers and aliases across most broker formats:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.82rem;">
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 8px;">
+                <strong style="color: #38bdf8; display: block;">Symbol (Required)</strong>
+                <span style="color: #94a3b8;">symbol, ticker, asset</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 8px;">
+                <strong style="color: #38bdf8; display: block;">Entry Price (Required)</strong>
+                <span style="color: #94a3b8;">entry, entry_price, price, buy_price</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 8px;">
+                <strong style="color: #38bdf8; display: block;">Quantity</strong>
+                <span style="color: #94a3b8;">quantity, qty, size, shares</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 8px;">
+                <strong style="color: #38bdf8; display: block;">Type / Direction</strong>
+                <span style="color: #94a3b8;">BUY / SELL (default: BUY)</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 8px;">
+                <strong style="color: #38bdf8; display: block;">Exit Price (Optional)</strong>
+                <span style="color: #94a3b8;">exit, exit_price, close_price</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 8px;">
+                <strong style="color: #38bdf8; display: block;">Stop Loss & Target</strong>
+                <span style="color: #94a3b8;">stop_loss, target, sl, tp</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 8px;">
+                <strong style="color: #38bdf8; display: block;">Strategy & Market</strong>
+                <span style="color: #94a3b8;">strategy, market (auto-inferred if omitted)</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 8px;">
+                <strong style="color: #38bdf8; display: block;">Date / Time</strong>
+                <span style="color: #94a3b8;">date, time, timestamp</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

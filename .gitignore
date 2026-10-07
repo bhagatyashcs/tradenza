@@ -1,0 +1,35 @@
+# Virtual Environment
+venv/
+.venv/
+.env
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+instance/
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Uploaded Images
+static/uploads/
+
+# Testing
+.pytest_cache/
+
+# Coverage
+.coverage
+htmlcov/

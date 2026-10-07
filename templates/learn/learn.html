@@ -1,0 +1,231 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}
+    Trader Playbook & Rulebook — Tradenza
+{% endblock %}
+
+{% block page_title %}
+    Learn & Playbook
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto; padding-bottom: 50px;">
+
+    <div class="page-header" style="margin-bottom: 24px;">
+        <div>
+            <h2>Trader Playbook & Knowledge Base</h2>
+            <p style="opacity: .75; margin-top: 4px;">
+                Internalize your edge, master risk guardrails, and eliminate psychological leaks.
+            </p>
+        </div>
+    </div>
+
+    <!-- Quick Navigation Tabs -->
+    <div style="display: flex; gap: 10px; margin-bottom: 26px; flex-wrap: wrap;">
+        <button type="button" class="btn" onclick="showTab('risk-rules')" id="tabBtn-risk-rules"
+                style="background: #0284c7; color: #fff; font-weight: 700; border-radius: 8px;">
+            🛡️ Risk Commandments
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="showTab('strategy-setups')" id="tabBtn-strategy-setups"
+                style="border-radius: 8px;">
+            📐 Strategy Playbook
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="showTab('psychology-mastery')" id="tabBtn-psychology-mastery"
+                style="border-radius: 8px;">
+            🧘 Psychology & Tilt Control
+        </button>
+        <a href="{{ url_for('coach.coach') }}" class="btn" style="background: #10b981; color: #fff; font-weight: 700; border-radius: 8px; margin-left: auto;">
+            🎮 Play Chart Simulator Game →
+        </a>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 1: RISK COMMANDMENTS -->
+    <!-- ============================================== -->
+    <div id="tab-risk-rules" class="playbook-tab-content">
+        <div class="dashboard-card" style="border: 1px solid rgba(16, 185, 129, 0.3); background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85)); border-radius: 14px; padding: 26px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px;">
+                <span style="font-size: 1.5rem;">📜</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #fff;">The 5 Golden Rules of Capital Preservation</h3>
+                    <span style="font-size: 0.82rem; color: #94a3b8;">Trading is a game of defense first. Offense takes care of itself.</span>
+                </div>
+            </div>
+
+            <div style="display: grid; gap: 16px;">
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 16px 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong style="color: #38bdf8; font-size: 1rem;">1. The 2% Capital Risk Limit</strong>
+                        <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Non-Negotiable</span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.88rem; color: #cbd5e1; line-height: 1.55;">
+                        Never risk more than <strong>1.5% to 2.0%</strong> of your total portfolio equity on any single trade. A string of 5 consecutive losses at 2% risk equals a 10% drawdown, which is recoverable in days. The same streak at 10% risk requires a +100% gain just to break even.
+                    </p>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 16px 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong style="color: #ef4444; font-size: 1rem;">2. Stop Loss Anchoring</strong>
+                        <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: rgba(239, 68, 68, 0.15); color: #ef4444;">Hard Rule</span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.88rem; color: #cbd5e1; line-height: 1.55;">
+                        Never enter a trade without an anchored Stop Loss placed in the market. Moving a stop loss further away once price approaches it is the #1 cause of catastrophic account blowups. Accept predefined risk with detachment.
+                    </p>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 16px 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong style="color: #10b981; font-size: 1rem;">3. Asymmetric Reward-to-Risk (&ge; 1:1.5R)</strong>
+                        <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.15); color: #10b981;">Mathematical Edge</span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.88rem; color: #cbd5e1; line-height: 1.55;">
+                        Only take setups offering at least <strong>1.5x to 2x</strong> reward relative to your risk distance. With a 1:2 R:R ratio, you can be wrong 60% of the time and still compound profits consistently.
+                    </p>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 16px 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong style="color: #f59e0b; font-size: 1rem;">4. The 15-Minute Cooldown Protocol</strong>
+                        <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: rgba(245, 158, 11, 0.15); color: #f59e0b;">Tilt Firebreak</span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.88rem; color: #cbd5e1; line-height: 1.55;">
+                        After closing a losing trade, your brain enters an instinctive fight-or-flight state seeking immediate revenge. Tradenza enforces a 15-minute timeout. Step away from the monitor, hydrate, and breathe before analyzing the next opportunity.
+                    </p>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 16px 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong style="color: #a855f7; font-size: 1rem;">5. Pre-Flight Execution Gate</strong>
+                        <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: rgba(168, 85, 247, 0.15); color: #a855f7;">Checklist Audit</span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.88rem; color: #cbd5e1; line-height: 1.55;">
+                        Before clicking "Buy" or "Sell", verify all 5 pre-flight checklist gates in your Tradenza Trade Cockpit: Symbol, Stop Loss, Target, Strategy tag, and Emotional check. If one is missing, you do not have a trade—you have a gamble.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 2: STRATEGY PLAYBOOK -->
+    <!-- ============================================== -->
+    <div id="tab-strategy-setups" class="playbook-tab-content" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <!-- Breakout Setup -->
+            <div class="dashboard-card" style="border: 1px solid rgba(56, 189, 248, 0.25); background: rgba(15, 23, 42, 0.9); border-radius: 12px; padding: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: #38bdf8; font-size: 1.15rem;">🚀 Breakout Setup</h3>
+                    <span style="font-size: 0.75rem; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 2px 8px; border-radius: 4px;">Momentum</span>
+                </div>
+                <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.5;">
+                    Trading expansion after price consolidates within a tight range against key support or resistance.
+                </p>
+                <div style="margin-top: 14px; font-size: 0.82rem; color: #cbd5e1;">
+                    <div style="margin-bottom: 6px;"><strong>Trigger:</strong> High-volume candle closing outside the consolidation range.</div>
+                    <div style="margin-bottom: 6px;"><strong>Stop Loss:</strong> Back inside the range, below the breakout candle low.</div>
+                    <div><strong>Target:</strong> Measured move of previous consolidation range (1:2 R).</div>
+                </div>
+            </div>
+
+            <!-- Pullback Setup -->
+            <div class="dashboard-card" style="border: 1px solid rgba(16, 185, 129, 0.25); background: rgba(15, 23, 42, 0.9); border-radius: 12px; padding: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: #10b981; font-size: 1.15rem;">📈 Pullback / Retest</h3>
+                    <span style="font-size: 0.75rem; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 2px 8px; border-radius: 4px;">Trend Continuation</span>
+                </div>
+                <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.5;">
+                    Entering an established trend when price temporarily retraces to key dynamic support (20 EMA, VWAP, or broken level).
+                </p>
+                <div style="margin-top: 14px; font-size: 0.82rem; color: #cbd5e1;">
+                    <div style="margin-bottom: 6px;"><strong>Trigger:</strong> Reversal rejection candle (hammer, engulfing) at retest level.</div>
+                    <div style="margin-bottom: 6px;"><strong>Stop Loss:</strong> Just beyond the retest swing point or moving average.</div>
+                    <div><strong>Target:</strong> Retest of recent swing high with runner target at 1:2.5R.</div>
+                </div>
+            </div>
+
+            <!-- Reversal Setup -->
+            <div class="dashboard-card" style="border: 1px solid rgba(168, 85, 247, 0.25); background: rgba(15, 23, 42, 0.9); border-radius: 12px; padding: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: #c084fc; font-size: 1.15rem;">🔄 Mean Reversion / Reversal</h3>
+                    <span style="font-size: 0.75rem; color: #c084fc; background: rgba(168, 85, 247, 0.12); padding: 2px 8px; border-radius: 4px;">Counter-Trend</span>
+                </div>
+                <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.5;">
+                    Fading extended momentum when buyers or sellers exhaust their liquidity into multi-timeframe extremes.
+                </p>
+                <div style="margin-top: 14px; font-size: 0.82rem; color: #cbd5e1;">
+                    <div style="margin-bottom: 6px;"><strong>Trigger:</strong> RSI divergence + failed higher high (liquidity sweep).</div>
+                    <div style="margin-bottom: 6px;"><strong>Stop Loss:</strong> Above the sweep extreme wick.</div>
+                    <div><strong>Target:</strong> Mean baseline (VWAP or 50% retracement level).</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- TAB 3: PSYCHOLOGY & TILT MASTERY -->
+    <!-- ============================================== -->
+    <div id="tab-psychology-mastery" class="playbook-tab-content" style="display: none;">
+        <div class="dashboard-card" style="border: 1px solid rgba(245, 158, 11, 0.3); background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85)); border-radius: 14px; padding: 26px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px;">
+                <span style="font-size: 1.5rem;">🧠</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #fff;">Mastering the Trader's Mindset</h3>
+                    <span style="font-size: 0.82rem; color: #94a3b8;">Trading is 20% technical strategy and 80% emotional governance.</span>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px;">
+                <div style="background: rgba(239, 68, 68, 0.07); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; padding: 18px;">
+                    <strong style="color: #ef4444; font-size: 0.95rem; display: block; margin-bottom: 6px;">Defeating Revenge Trading</strong>
+                    <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5; margin: 0;">
+                        The market cannot be punished. When you take a loss, your account took a mathematical hit, but your identity is intact. Treat every loss like a business expense (e.g. paying rent).
+                    </p>
+                </div>
+
+                <div style="background: rgba(245, 158, 11, 0.07); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; padding: 18px;">
+                    <strong style="color: #f59e0b; font-size: 0.95rem; display: block; margin-bottom: 6px;">Eliminating FOMO (Fear of Missing Out)</strong>
+                    <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5; margin: 0;">
+                        The market will print opportunities every minute of every trading day for the rest of your life. Chasing an extended green candle is buying someone else's exit liquidity. Wait for the retest.
+                    </p>
+                </div>
+
+                <div style="background: rgba(16, 185, 129, 0.07); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 18px;">
+                    <strong style="color: #10b981; font-size: 0.95rem; display: block; margin-bottom: 6px;">Letting Winners Run</strong>
+                    <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5; margin: 0;">
+                        If you take 1.5R or 2R on winners, you do not need a 70% win rate. When in profit, trail your stop loss to break-even + buffer, then leave the chart to prevent premature closure out of anxiety.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function showTab(tabId) {
+    document.querySelectorAll('.playbook-tab-content').forEach(function(el) {
+        el.style.display = 'none';
+    });
+    document.querySelectorAll('.playbook-tab-content').forEach(function(el) {
+        var id = el.id.replace('tab-', '');
+        var btn = document.getElementById('tabBtn-' + id);
+        if (btn) {
+            btn.className = 'btn btn-secondary';
+            btn.style.background = '';
+            btn.style.color = '';
+        }
+    });
+
+    var target = document.getElementById('tab-' + tabId);
+    if (target) {
+        target.style.display = 'block';
+    }
+    var activeBtn = document.getElementById('tabBtn-' + tabId);
+    if (activeBtn) {
+        activeBtn.className = 'btn';
+        activeBtn.style.background = '#0284c7';
+        activeBtn.style.color = '#fff';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,131 @@
+<div class="dashboard-card">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h3 style="margin: 0;">
+            📈 Equity Curve
+        </h3>
+        {% if portfolio is defined and portfolio.current_balance is defined %}
+        <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 0.25rem 0.6rem; border-radius: 6px;">
+            Balance: ${{ "%.2f"|format(portfolio.current_balance) }}
+        </span>
+        {% endif %}
+    </div>
+
+    <hr style="margin-top: 0.5rem; margin-bottom: 1.25rem; border-color: var(--border);">
+
+    <!-- Dedicated relative container with fixed height constraint prevents Chart.js infinite resize loop -->
+    <div class="chart-container-wrapper" style="position: relative; height: 320px; width: 100%; max-height: 320px; overflow: hidden;">
+        <canvas id="equityChart" style="max-height: 320px !important; width: 100% !important; display: block;"></canvas>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const equityCanvas = document.getElementById("equityChart");
+    if (!equityCanvas) return;
+
+    // Destroy any existing Chart instance on this canvas to prevent duplicate instances
+    const existingChart = Chart.getChart(equityCanvas);
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    const rawLabels = {{ (charts.equity_curve["labels"] if charts and charts.equity_curve else []) | tojson }};
+    const rawValues = {{ (charts.equity_curve["values"] if charts and charts.equity_curve else []) | tojson }};
+
+    const startingBal = {{ portfolio.starting_balance|default(0)|tojson }};
+    const currentBal = {{ portfolio.current_balance|default(0)|tojson }};
+
+    let chartLabels = rawLabels;
+    let chartValues = rawValues;
+
+    // Fallback baseline if no historical snapshots logged yet
+    if (!chartValues || chartValues.length === 0) {
+        chartLabels = ["Baseline", "Current"];
+        chartValues = [startingBal, currentBal];
+    } else if (chartValues.length === 1) {
+        chartLabels = ["Start", rawLabels[0]];
+        chartValues = [startingBal, rawValues[0]];
+    }
+
+    new Chart(equityCanvas, {
+        type: "line",
+        data: {
+            labels: chartLabels,
+            datasets: [
+                {
+                    label: "Portfolio Balance",
+                    data: chartValues,
+                    borderColor: "#00d2ff",
+                    backgroundColor: "rgba(0, 210, 255, 0.12)",
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: "#00d2ff",
+                    borderWidth: 3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 600
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: "rgba(13, 19, 34, 0.95)",
+                    titleColor: "#f8fafc",
+                    bodyColor: "#00d2ff",
+                    borderColor: "rgba(0, 210, 255, 0.3)",
+                    borderWidth: 1,
+                    padding: 10,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            const val = Number(context.parsed.y) || 0;
+                            return `Portfolio: $${val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: "#94a3b8",
+                        font: { size: 11, family: "'JetBrains Mono', monospace" }
+                    },
+                    grid: {
+                        color: "rgba(255, 255, 255, 0.05)",
+                        drawBorder: false
+                    }
+                },
+                y: {
+                    ticks: {
+                        color: "#94a3b8",
+                        font: { size: 11, family: "'JetBrains Mono', monospace" },
+                        callback: function(val) {
+                            return '$' + Number(val).toLocaleString();
+                        }
+                    },
+                    grid: {
+                        color: "rgba(255, 255, 255, 0.05)",
+                        drawBorder: false
+                    }
+                }
+            }
+        }
+    });
+});
+</script>

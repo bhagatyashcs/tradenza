@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradenza — 3D Financial Intelligence & Trading Terminal</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Three.js 3D WebGL Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- 3D Trading Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/3d-trading.css') }}">
+
+    <style>
+        /* Landing Page Custom 3D Extensions */
+        .landing-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 48px;
+            background: rgba(6, 9, 16, 0.75);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 100;
+        }
+
+        .landing-hero {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 130px 24px 60px 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid rgba(0, 210, 255, 0.35);
+            color: var(--neon-cyan);
+            padding: 6px 18px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            margin-bottom: 24px;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.15);
+        }
+
+        .landing-hero h1 {
+            font-size: 3.6rem;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffffff 40%, var(--neon-cyan) 80%, var(--neon-green) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            max-width: 900px;
+        }
+
+        .landing-hero p {
+            font-size: 1.15rem;
+            color: var(--t-secondary);
+            line-height: 1.6;
+            max-width: 680px;
+            margin-bottom: 36px;
+        }
+
+        .hero-cta-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 64px;
+        }
+
+        .btn-glow-cyan {
+            background: linear-gradient(135deg, #0284c7 0%, #00d2ff 100%) !important;
+            color: #030712 !important;
+            font-weight: 800 !important;
+            padding: 14px 32px !important;
+            border-radius: 12px !important;
+            font-size: 1rem !important;
+            box-shadow: 0 8px 30px rgba(0, 210, 255, 0.45) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s ease;
+        }
+
+        .btn-glow-cyan:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(0, 210, 255, 0.6) !important;
+        }
+
+        .btn-glass-hero {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(12px);
+            transition: all 0.25s ease;
+        }
+
+        .btn-glass-hero:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(0, 210, 255, 0.4);
+            transform: translateY(-3px);
+        }
+
+        /* 3D Holographic Cockpit Showcase */
+        .terminal-mockup-wrapper {
+            width: 100%;
+            max-width: 1050px;
+            perspective: 1200px;
+            margin: 0 auto 80px auto;
+        }
+
+        .terminal-mockup {
+            background: rgba(13, 19, 34, 0.9);
+            border: 1px solid rgba(0, 210, 255, 0.35);
+            border-radius: 20px;
+            box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.9), 0 0 45px rgba(0, 210, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            padding: 24px;
+            transform: rotateX(10deg);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+        }
+
+        .terminal-mockup:hover {
+            transform: rotateX(0deg) translateY(-8px);
+            box-shadow: 0 40px 100px -15px rgba(0, 0, 0, 0.95), 0 0 60px rgba(0, 210, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .mockup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .mockup-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mockup-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: #ff5f56; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green { background: #27c93f; }
+
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            text-align: left;
+        }
+
+        .mockup-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .mockup-card h4 {
+            font-size: 0.75rem;
+            color: var(--t-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+        }
+
+        .mockup-card h2 {
+            font-size: 1.6rem;
+            font-family: var(--t-mono);
+            font-weight: 800;
+        }
+
+        /* 3D Features Section */
+        .features-section {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px 100px 24px;
+        }
+
+        .section-headline {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-headline h2 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            margin-bottom: 14px;
+        }
+
+        .features-3d-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card-3d {
+            background: var(--c-surface-1);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 32px 24px;
+            box-shadow: var(--shadow-3d-md);
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card-3d:hover {
+            border-color: rgba(0, 210, 255, 0.35);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 210, 255, 0.15);
+        }
+
+        .feature-icon-box {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--neon-cyan);
+            margin-bottom: 20px;
+        }
+
+        .feature-card-3d h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .feature-card-3d p {
+            font-size: 0.9rem;
+            color: var(--t-secondary);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .landing-nav { padding: 0 20px; }
+            .landing-hero h1 { font-size: 2.2rem; }
+            .mockup-grid { grid-template-columns: 1fr; }
+            .terminal-mockup { transform: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D WebGL Background Canvas -->
+    <canvas id="webgl-trading-canvas"></canvas>
+
+    <!-- Navigation Header -->
+    <header class="landing-nav">
+        <a href="/" class="logo" style="margin-bottom:0 !important; border:none; padding:0;">
+            <div class="logo-cube">
+                <i data-lucide="box"></i>
+            </div>
+            <div class="logo-text-group">
+                <h2>TRADENZA</h2>
+                <p>Spatial Trading OS</p>
+            </div>
+        </a>
+
+        <div style="display:flex; align-items:center; gap:16px;">
+            <a href="/login" class="btn btn-secondary" style="font-size:0.88rem; padding:8px 20px;">
+                Log In
+            </a>
+            <a href="/register" class="btn btn-primary" style="font-size:0.88rem; padding:8px 22px;">
+                Launch Terminal
+            </a>
+        </div>
+    </header>
+
+    <!-- Hero Viewport -->
+    <main>
+        <section class="landing-hero">
+            <div class="hero-badge">
+                <i data-lucide="sparkles" style="width:14px; height:14px;"></i>
+                NEXT-GEN 3D TRADING COCKPIT
+            </div>
+
+            <h1>Master The Markets In True 3D Precision</h1>
+
+            <p>
+                Eliminate impulsive decisions and master market psychology. Tradenza unites 3D behavioral biometric analytics, deterministic trader genome intelligence, and AI-driven Aura coaching in a single high-performance terminal.
+            </p>
+
+            <div class="hero-cta-group">
+                <a href="/register" class="btn-glow-cyan">
+                    <i data-lucide="zap" style="width:18px; height:18px;"></i>
+                    Start Free Trading Terminal
+                </a>
+                <a href="/login" class="btn-glass-hero">
+                    <i data-lucide="terminal" style="width:18px; height:18px;"></i>
+                    Access Live Account →
+                </a>
+            </div>
+
+            <!-- 3D Interactive Cockpit Preview -->
+            <div class="terminal-mockup-wrapper">
+                <div class="terminal-mockup card-3d">
+                    <div class="mockup-header">
+                        <div class="mockup-dots">
+                            <span class="mockup-dot dot-red"></span>
+                            <span class="mockup-dot dot-yellow"></span>
+                            <span class="mockup-dot dot-green"></span>
+                        </div>
+                        <div style="font-size:0.8rem; color:var(--t-muted); font-family:var(--t-mono);">
+                            TRADENZA SPATIAL COCKPIT v3.2 • NEW YORK SESSION
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px; color:var(--neon-green); font-size:0.75rem; font-weight:700;">
+                            <span class="pulse-dot"></span> FEED: 100% OK
+                        </div>
+                    </div>
+
+                    <div class="mockup-grid">
+                        <div class="mockup-card">
+                            <h4>Trader Quality Score</h4>
+                            <h2 style="color:var(--neon-green);">88 / 100</h2>
+                            <p style="font-size:0.75rem; color:var(--t-secondary); margin-top:4px;">Disciplined Momentum Specialist</p>
+                        </div>
+                        <div class="mockup-card">
+                            <h4>Portfolio Realized P/L</h4>
+                            <h2 style="color:var(--neon-cyan);">+$14,850.20</h2>
+                            <p style="font-size:0.75rem; color:var(--neon-green); margin-top:4px;">▲ +24.8% Capital Compound</p>
+                        </div>
+                        <div class="mockup-card">
+                            <h4>Aura AI Telemetry</h4>
+                            <h2 style="font-size:1.15rem; color:#fff; font-family:sans-serif; font-weight:600;">Discipline Locked</h2>
+                            <p style="font-size:0.75rem; color:var(--t-secondary); margin-top:4px;">Risk limits honored for 14 consecutive trades.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3D Features Pillar Grid -->
+        <section class="features-section">
+            <div class="section-headline">
+                <span class="hero-badge">SPATIAL CAPABILITIES</span>
+                <h2>Engineered for Disciplined Capital Growth</h2>
+                <p style="color:var(--t-secondary); max-width:600px; margin:0 auto;">
+                    Standard spreadsheets don't stop revenge trading. Tradenza's multi-layered 3D architecture tracks what matters most: you.
+                </p>
+            </div>
+
+            <div class="features-3d-grid">
+                <div class="feature-card-3d card-3d">
+                    <div class="feature-icon-box">
+                        <i data-lucide="dna"></i>
+                    </div>
+                    <h3>Trader Genome</h3>
+                    <p>
+                        Deterministic behavioral intelligence maps your psychological archetypes, revenge trading impulses, and risk consistency.
+                    </p>
+                </div>
+
+                <div class="feature-card-3d card-3d">
+                    <div class="feature-icon-box" style="background:rgba(0,245,155,0.1); border-color:rgba(0,245,155,0.3); color:var(--neon-green);">
+                        <i data-lucide="radar"></i>
+                    </div>
+                    <h3>3D Market Radar</h3>
+                    <p>
+                        Real-time asset telemetry powered by Twelve Data. Scan equities, crypto, and forex with live quotes and instant trade setup execution.
+                    </p>
+                </div>
+
+                <div class="feature-card-3d card-3d">
+                    <div class="feature-icon-box" style="background:rgba(168,85,247,0.1); border-color:rgba(168,85,247,0.3); color:var(--neon-purple);">
+                        <i data-lucide="sparkles"></i>
+                    </div>
+                    <h3>Aura AI Coach</h3>
+                    <p>
+                        Context-aware AI companion reviewing every position against your historical mistakes to keep tilt and emotional fatigue at zero.
+                    </p>
+                </div>
+
+                <div class="feature-card-3d card-3d">
+                    <div class="feature-icon-box" style="background:rgba(255,183,3,0.1); border-color:rgba(255,183,3,0.3); color:var(--neon-amber);">
+                        <i data-lucide="wallet"></i>
+                    </div>
+                    <h3>Portfolio & Ledger</h3>
+                    <p>
+                        Full liquid capital ledger with deposits, withdrawals, R-multiple expectancy, and true compounded return curves.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer style="position:relative; z-index:10; border-top:1px solid rgba(255,255,255,0.06); padding:40px 24px; text-align:center; color:var(--t-muted); font-size:0.82rem;">
+        <p>© 2026 Tradenza Financial OS. All rights reserved. Built for professional traders.</p>
+    </footer>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+
+    <!-- 3D Trading Engine -->
+    <script src="{{ url_for('static', filename='js/trading-3d.js') }}"></script>
+</body>
+</html>

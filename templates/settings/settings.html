@@ -1,0 +1,298 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}
+    Settings & Risk Parameters — Tradenza
+{% endblock %}
+
+{% block page_title %}
+    Settings
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto; padding-bottom: 40px;">
+
+    <div class="page-header" style="margin-bottom: 24px;">
+        <div>
+            <h2>Trading Parameters & Settings</h2>
+            <p style="opacity: .75; margin-top: 4px;">
+                Configure your account capital, universal currency, and automated risk guardrails.
+            </p>
+        </div>
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; font-weight: 600; font-size: 0.9rem; {% if category == 'success' %}background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);{% else %}background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 1. ACCOUNT & TRADING PREFERENCES FORM -->
+    <form method="POST" action="{{ url_for('settings.settings') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="preferences">
+
+        <!-- Universal Currency & Equity Card -->
+        <div class="dashboard-card" style="border: 1px solid rgba(56, 189, 248, 0.25); background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85)); border-radius: 14px; padding: 24px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px;">
+                <span style="font-size: 1.3rem;">💱</span>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;">
+                    Universal Currency & Portfolio Capital
+                </h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px;">
+                <!-- Preferred Currency -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Display Currency Symbol
+                    </label>
+                    <select name="currency" style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;">
+                        <option value="$" {% if user.currency == '$' %}selected{% endif %}>$ — US Dollar (USD)</option>
+                        <option value="₹" {% if user.currency == '₹' %}selected{% endif %}>₹ — Indian Rupee (INR)</option>
+                        <option value="€" {% if user.currency == '€' %}selected{% endif %}>€ — Euro (EUR)</option>
+                        <option value="£" {% if user.currency == '£' %}selected{% endif %}>£ — British Pound (GBP)</option>
+                    </select>
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 4px;">
+                        Applied universally across dashboard, journal, and trade cockpits.
+                    </span>
+                </div>
+
+                <!-- Account Starting Balance -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Starting Portfolio Capital
+                    </label>
+                    <input type="number" step="0.01" min="10" name="starting_balance"
+                           value="{{ portfolio.starting_balance or 10000.0 }}"
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;" />
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 4px;">
+                        Base capital used for position sizing and equity curve tracking.
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Guardrails & Tilt Ceilings -->
+        <div class="dashboard-card" style="border: 1px solid rgba(6, 182, 212, 0.25); background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85)); border-radius: 14px; padding: 24px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px;">
+                <span style="font-size: 1.3rem;">🛡️</span>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;">
+                    Risk Guardrails & Automated Tilt Limits
+                </h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px;">
+                <!-- Max Risk % per trade -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Max Risk % per Trade
+                    </label>
+                    <input type="number" step="0.1" min="0.5" max="10.0" name="max_risk_percent"
+                           value="{{ user.max_risk_percent or 2.0 }}"
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;" />
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 4px;">
+                        Recommended: 1.0% – 2.0%. Cockpit flags positions exceeding this limit.
+                    </span>
+                </div>
+
+                <!-- Daily Max Drawdown Limit -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Max Daily Loss Ceiling ({{ user.currency or '$' }})
+                    </label>
+                    <input type="number" step="10" min="50" name="daily_max_loss"
+                           value="{{ user.daily_max_loss or 500.0 }}"
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;" />
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 4px;">
+                        TradeBuddy cooldown activates when daily losses breach this threshold.
+                    </span>
+                </div>
+
+                <!-- Trader Display Name -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Trader Name
+                    </label>
+                    <input type="text" name="name" value="{{ user.name }}"
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;" />
+                </div>
+            </div>
+
+            <div style="margin-top: 22px; text-align: right;">
+                <button type="submit" class="btn" style="background: #0284c7; color: #fff; font-weight: 700; padding: 10px 24px; border-radius: 8px;">
+                    💾 Save Preferences
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- 2. AURA AI COACH & LLM INTELLIGENCE SETTINGS -->
+    <form method="POST" action="{{ url_for('settings.settings') }}" style="margin-bottom: 24px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="ai">
+
+        <div class="dashboard-card" style="border: 1px solid rgba(168, 85, 247, 0.3); background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.85)); border-radius: 14px; padding: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.3rem;">🧠</span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;">
+                            Aura AI Coach & LLM Gateway
+                        </h3>
+                        <span style="font-size: 0.78rem; color: #94a3b8;">
+                            Configure your AI brain provider for real-time Socratic coaching and trade post-mortems.
+                        </span>
+                    </div>
+                </div>
+                <span style="font-size: 0.75rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 4px 10px; border-radius: 6px; font-weight: 600;">
+                    Hybrid Deterministic + LLM
+                </span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
+                <!-- AI Provider Selector -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        AI Provider
+                    </label>
+                    <select name="ai_provider" style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;">
+                        <option value="nvidia" {% if user.ai_provider == 'nvidia' or not user.ai_provider %}selected{% endif %}>NVIDIA NIM (DeepSeek V4.1 Flash - Frontier Intelligence)</option>
+                        <option value="gemini" {% if user.ai_provider == 'gemini' %}selected{% endif %}>Google Gemini (Gemini 1.5 Flash / Pro)</option>
+                        <option value="openai" {% if user.ai_provider == 'openai' %}selected{% endif %}>OpenAI (GPT-4o / GPT-4o-mini)</option>
+                        <option value="ollama" {% if user.ai_provider == 'ollama' %}selected{% endif %}>Local Ollama (100% Offline / Private)</option>
+                        <option value="offline" {% if user.ai_provider == 'offline' %}selected{% endif %}>Built-in Heuristic Engine (Offline Fallback)</option>
+                    </select>
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 4px;">
+                        Aura falls back to built-in offline rules if cloud API is unavailable.
+                    </span>
+                </div>
+
+                <!-- Model Name -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Model Identifier
+                    </label>
+                    <input type="text" name="ai_model"
+                           value="{{ user.ai_model or 'deepseek-ai/deepseek-v4.1-flash' }}"
+                           placeholder="deepseek-ai/deepseek-v4.1-flash, gemini-1.5-flash, gpt-4o-mini"
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;" />
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 4px;">
+                        Default: deepseek-ai/deepseek-v4.1-flash for NVIDIA NIM.
+                    </span>
+                </div>
+
+                <!-- Coaching Persona Style -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Coaching Psychology Style
+                    </label>
+                    <select name="ai_coaching_style" style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;">
+                        <option value="socratic" {% if user.ai_coaching_style == 'socratic' or not user.ai_coaching_style %}selected{% endif %}>Socratic Mentor (Mark Douglas & Steenbarger)</option>
+                        <option value="disciplined" {% if user.ai_coaching_style == 'disciplined' %}selected{% endif %}>Disciplined Risk Enforcer (Strict stop guardian)</option>
+                        <option value="analytical" {% if user.ai_coaching_style == 'analytical' %}selected{% endif %}>Quantitative & Analytical (EV & Probabilities)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- API Keys -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px;">
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        NVIDIA NIM API Key (DeepSeek)
+                    </label>
+                    <input type="password" name="nvidia_api_key"
+                           value="{{ user.nvidia_api_key or '' }}"
+                           placeholder="nvapi-..."
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem; font-family: monospace;" />
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 4px;">
+                        Integrate.api.nvidia.com Bearer API token.
+                    </span>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Google Gemini API Key
+                    </label>
+                    <input type="password" name="gemini_api_key"
+                           value="{{ user.gemini_api_key or '' }}"
+                           placeholder="AIzaSy..."
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;" />
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 4px;">
+                        Get key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #38bdf8; text-decoration: none;">Google AI Studio ↗</a>
+                    </span>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        OpenAI API Key
+                    </label>
+                    <input type="password" name="openai_api_key"
+                           value="{{ user.openai_api_key or '' }}"
+                           placeholder="sk-..."
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; font-size: 0.95rem;" />
+                    <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 4px;">
+                        Optional if using NVIDIA NIM or Gemini.
+                    </span>
+                </div>
+            </div>
+
+            <div style="margin-top: 22px; text-align: right;">
+                <button type="submit" class="btn" style="background: #a855f7; color: #fff; font-weight: 700; padding: 10px 24px; border-radius: 8px;">
+                    ✨ Save AI Parameters
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- 3. SECURITY & PASSWORD FORM -->
+    <form method="POST" action="{{ url_for('settings.settings') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="password">
+
+        <div class="dashboard-card" style="border: 1px solid rgba(255,255,255,0.08); background: rgba(15, 23, 42, 0.7); border-radius: 14px; padding: 24px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px;">
+                <span style="font-size: 1.3rem;">🔒</span>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;">
+                    Account Security & Password
+                </h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Current Password
+                    </label>
+                    <input type="password" name="current_password" required
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff;" />
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        New Password
+                    </label>
+                    <input type="password" name="new_password" required minlength="8"
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff;" />
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        Confirm New Password
+                    </label>
+                    <input type="password" name="confirm_password" required minlength="8"
+                           style="width: 100%; padding: 10px 14px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff;" />
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button type="submit" class="btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-weight: 600; padding: 10px 20px; border-radius: 8px;">
+                    Update Password
+                </button>
+            </div>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

@@ -1,0 +1,2205 @@
+{% if cooldown and cooldown.in_cooldown %}
+<div style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.08); border-radius: 12px; margin-bottom: 24px; padding: 16px 20px;">
+    <div style="display: flex; gap: 14px; align-items: flex-start;">
+        <span style="font-size: 1.6rem;">⚠️</span>
+        <div>
+            <h4 style="margin: 0; color: #ef4444; font-weight: 700;">Aura Cooldown Active: Tilt Prevention Guardrail</h4>
+            <p style="margin: 6px 0 0; opacity: 0.9; font-size: 0.92rem; line-height: 1.5;">
+                {{ cooldown.message }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Mode Switcher (Active Position vs Past Trade Log) -->
+<div class="mode-switch-container">
+    <button type="button" class="mode-switch-btn active" id="btnModeLive" onclick="setEntryMode('LIVE')">
+        ⚡ Active Position (Opening Now)
+    </button>
+    <button type="button" class="mode-switch-btn" id="btnModeHistory" onclick="setEntryMode('HISTORY')">
+        📋 Historical / Past Trade Log
+    </button>
+</div>
+
+<form method="POST" id="cockpitTradeForm" enctype="multipart/form-data">
+
+    {{ form.hidden_tag() }}
+
+    <div class="trade-cockpit-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+        <!-- ========================================== -->
+        <!-- LEFT COLUMN: ORDER TICKET & PRICING       -->
+        <!-- ========================================== -->
+        <div id="col-order" style="grid-column: span 2;">
+
+            <!-- Direction Toggle (BUY vs SELL) -->
+            <div class="cockpit-card" style="padding: 16px 20px;">
+                <div class="cockpit-section-label">
+                    <span>Trade Direction</span>
+                    <span id="dirLabelHelper" style="color: #10b981;">Going Long</span>
+                </div>
+                <div class="direction-toggle-group" style="margin-bottom: 0;">
+                    <button type="button" class="dir-toggle-btn btn-buy active" id="btnToggleBuy" onclick="setTradeDirection('BUY')">
+                        ▲ BUY / LONG
+                    </button>
+                    <button type="button" class="dir-toggle-btn btn-sell" id="btnToggleSell" onclick="setTradeDirection('SELL')">
+                        ▼ SELL / SHORT
+                    </button>
+                </div>
+                <div style="display: none;">
+                    {{ form.trade_type(id="hiddenTradeType") }}
+                </div>
+            </div>
+
+            <!-- Instrument & Market (SYNCHRONIZED) -->
+            <div class="cockpit-card">
+                <div class="cockpit-section-label">
+                    <span>Market Category</span>
+                    <span id="activeMarketBadge" style="font-size: 0.75rem; color: #38bdf8;">Filtered: Stocks</span>
+                </div>
+
+                <!-- Market Pills -->
+                <div class="quick-chips-row" id="marketPillsContainer" style="margin-bottom: 12px;">
+                    <span class="cockpit-chip active" data-market="Stocks" onclick="selectMarket('Stocks', this)">Stocks 📈</span>
+                    <span class="cockpit-chip" data-market="Crypto" onclick="selectMarket('Crypto', this)">Crypto 🪙</span>
+                    <span class="cockpit-chip" data-market="Forex" onclick="selectMarket('Forex', this)">Forex 💱</span>
+                    <span class="cockpit-chip" data-market="Futures" onclick="selectMarket('Futures', this)">Futures ⚡</span>
+                    <span class="cockpit-chip" data-market="Options" onclick="selectMarket('Options', this)">Options 📊</span>
+                </div>
+                <div style="display: none;">
+                    {{ form.market(id="hiddenMarketSelect") }}
+                </div>
+
+                <!-- Synchronized Quick Ticker Chips (Updates dynamically with Market) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 0.76rem; opacity: 0.65;">Popular in this market:</span>
+                    <button type="button" onclick="toggleAssetBrowser()" style="background: none; border: none; color: #38bdf8; font-size: 0.76rem; font-weight: 600; cursor: pointer; padding: 0;">
+                        🔍 Browse All Assets ▾
+                    </button>
+                </div>
+                <div class="quick-chips-row" id="marketDynamicChipsRow" style="margin-top: 0; min-height: 28px;">
+                    <!-- Injected by JavaScript based on selected market -->
+                </div>
+
+                <!-- Symbol Search / Autocomplete Box -->
+                <div class="autocomplete-container">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <div style="flex: 1; position: relative;">
+                            {{ form.symbol(id="tradeSymbolInput", placeholder="Type symbol or name (e.g. Apple, Bitcoin, TSLA)...", autocomplete="off", style="margin-bottom: 0; font-weight: 600; font-size: 1.05rem;") }}
+                        </div>
+                        <button type="button" class="btn" id="btnFetchLivePrice" onclick="fetchLiveMarketPrice(true)"
+                                style="padding: 11px 16px; font-size: 0.85rem; font-weight: 600; white-space: nowrap;">
+                            ⚡ Quote
+                        </button>
+                    </div>
+
+                    <!-- Autocomplete Dropdown List -->
+                    <div class="autocomplete-dropdown" id="symbolAutocompleteList">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Expandable Asset Browser Drawer -->
+                <div class="asset-browser-drawer" id="assetBrowserDrawer">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 0.82rem; font-weight: 700; color: #38bdf8;">Select from Instrument Directory</span>
+                        <input type="text" id="assetDrawerSearch" placeholder="Filter assets..."
+                                style="width: 160px; padding: 4px 8px; font-size: 0.75rem; margin-bottom: 0;"
+                                oninput="filterAssetDrawer(this.value)">
+                    </div>
+                    <div class="asset-browser-grid" id="assetDrawerGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Live Quote Banner -->
+                <div id="liveQuoteBanner" style="display: none; background: rgba(255,255,255,0.04); border-radius: 10px; padding: 12px 16px; margin-top: 12px; border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;" id="lqExchange">EXCHANGE</div>
+                            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 2px;">
+                                <span id="lqName" style="font-weight: 700; font-size: 1.05rem; color: #fff;"></span>
+                                <span id="lqSymbol" style="font-size: 0.82rem; color: #94a3b8;"></span>
+                            </div>
+                            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+                                <span id="lqPrice" style="font-size: 1.35rem; font-weight: 700; color: #38bdf8;"></span>
+                                <span id="lqChange" style="font-size: 0.85rem; font-weight: 600;"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <button type="button" class="btn" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-weight: 700; padding: 8px 14px; font-size: 0.85rem;" onclick="applyLivePriceToEntry(true)">
+                                Use Current Price ↵
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <span id="livePriceFeedback" style="display: block; font-size: 0.8rem; color: #38bdf8; margin-top: 4px;"></span>
+            </div>
+
+            <!-- Price & Position Sizing -->
+            <div class="cockpit-card">
+                <div class="cockpit-section-label">
+                    <span>Pricing & Position Sizing</span>
+                    <span id="accountBalanceBadge" style="font-size: 0.75rem; color: #38bdf8;">Account: ${{ "%.2f"|format(account_balance or 10000.0) }}</span>
+                </div>
+
+                <!-- Entry Price with Instant Live Market Fill -->
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 0;">
+                            Entry Price (<span id="currencySymbolLabel">$</span>)
+                        </label>
+                        <button type="button" id="btnFillMarketPrice" class="market-pill-btn" onclick="applyLivePriceToEntry(true)"
+                                title="Click to fill current live market price">
+                            <span class="pulse-dot"></span>
+                            <span>Live:</span>
+                            <strong id="entryMarketPriceTag">$—</strong>
+                            <span class="market-pill-action">Use ↵</span>
+                        </button>
+                    </div>
+                    {{ form.entry_price(id="tradeEntryPriceInput", step="any", placeholder="0.00", style="margin-bottom: 0; font-size: 1.15rem; font-weight: 700;") }}
+                    <div id="entryPriceFeedback" style="display: flex; justify-content: space-between; font-size: 0.76rem; margin-top: 4px; min-height: 16px;">
+                        <span id="entryPriceStatus" style="color: #94a3b8;">Click [Use ↵] or select any ticker to fill live price</span>
+                    </div>
+                </div>
+
+                <!-- Stop Loss with Quick Helpers -->
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 0;">
+                            Stop Loss ($)
+                        </label>
+                        <div class="quick-chips-row" style="margin: 0; gap: 4px;">
+                            <span class="cockpit-chip" onclick="applyStopLossPercent(1.0)">-1%</span>
+                            <span class="cockpit-chip" onclick="applyStopLossPercent(2.0)">-2%</span>
+                            <span class="cockpit-chip" onclick="applyStopLossPercent(3.0)">-3%</span>
+                            <span class="cockpit-chip" onclick="applyStopLossPercent(5.0)">-5%</span>
+                        </div>
+                    </div>
+                    {{ form.stop_loss(id="tradeStopLossInput", step="any", placeholder="Optional (Required for R:R)", style="margin-bottom: 0;") }}
+                </div>
+
+                <!-- Target Price with Quick R:R Helpers -->
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 0;">
+                            Take-Profit Target ($)
+                        </label>
+                        <div class="quick-chips-row" style="margin: 0; gap: 4px;">
+                            <span class="cockpit-chip" onclick="applyTargetRR(1.5)">1:1.5 R</span>
+                            <span class="cockpit-chip" onclick="applyTargetRR(2.0)">1:2.0 R</span>
+                            <span class="cockpit-chip" onclick="applyTargetRR(3.0)">1:3.0 R</span>
+                        </div>
+                    </div>
+                    {{ form.target(id="tradeTargetInput", step="any", placeholder="Optional (Required for R:R)", style="margin-bottom: 0;") }}
+                </div>
+
+                <!-- Quantity with 1-Click Risk Presets -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 0;">
+                            Quantity / Units
+                        </label>
+                        <div class="quick-chips-row" style="margin: 0; gap: 4px;">
+                            <span class="cockpit-chip" title="Risk 0.5% of Account Capital" onclick="applyRiskSizing(0.5)">0.5% Risk</span>
+                            <span class="cockpit-chip" title="Risk 1.0% of Account Capital" onclick="applyRiskSizing(1.0)">1.0% Risk</span>
+                            <span class="cockpit-chip" title="Risk 2.0% of Account Capital" onclick="applyRiskSizing(2.0)">2.0% Risk</span>
+                        </div>
+                    </div>
+                    {{ form.quantity(id="tradeQuantityInput", step="any", placeholder="1.0", style="margin-bottom: 0; font-size: 1.1rem; font-weight: 700;") }}
+                    <span id="sizingFeedback" style="display: block; font-size: 0.78rem; opacity: 0.7; margin-top: 4px;">
+                        Enter Stop Loss to enable 1-Click Risk Sizing.
+                    </span>
+
+                    <!-- Live Position Capital Allocation Box -->
+                    <div id="positionCapitalBox" style="margin-top: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-size: 0.74rem; opacity: 0.65; display: block;">Total Capital Allocation</span>
+                            <span id="posTotalValue" style="font-size: 1.05rem; font-weight: 700; color: #fff;">$0.00</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 0.74rem; opacity: 0.65; display: block;">Account Exposure</span>
+                            <span id="posEquityPct" style="font-size: 0.88rem; font-weight: 600; color: #38bdf8;">0.0% of Balance</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Historical / Exit Fields (Hidden by default in LIVE mode) -->
+            <div class="cockpit-card" id="historyFieldsCard" style="display: none; border-left: 4px solid #38bdf8;">
+                <div class="cockpit-section-label">
+                    <span>Historical Trade Exit Data</span>
+                    <span style="color: #38bdf8;">Past Trade Mode</span>
+                </div>
+
+                <!-- Historical Timestamps -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 0.82rem; font-weight: 600; opacity: 0.8; margin-bottom: 4px; display: block;">
+                            Entry Time
+                        </label>
+                        <input type="datetime-local" id="pickerEntryTime" class="form-control" style="width: 100%; font-size: 0.85rem;"
+                               onchange="document.getElementById('tradeEntryTimeInput').value = this.value;" />
+                        {{ form.entry_time(id="tradeEntryTimeInput", style="display: none;") }}
+                    </div>
+                    <div>
+                        <label style="font-size: 0.82rem; font-weight: 600; opacity: 0.8; margin-bottom: 4px; display: block;">
+                            Exit Time
+                        </label>
+                        <input type="datetime-local" id="pickerExitTime" class="form-control" style="width: 100%; font-size: 0.85rem;"
+                               onchange="document.getElementById('tradeExitTimeInputHidden').value = this.value;" />
+                        {{ form.exit_time(id="tradeExitTimeInputHidden", style="display: none;") }}
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 4px; display: block;">
+                        Exit Price ($)
+                    </label>
+                    {{ form.exit_price(id="tradeExitPriceInput", step="any", placeholder="0.00", style="margin-bottom: 0;") }}
+                </div>
+
+                <!-- Realized P/L Preview -->
+                <div id="historicalPnlBox" style="background: rgba(255,255,255,0.04); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: none;">
+                    <span style="font-size: 0.8rem; opacity: 0.7;">Realized P/L:</span>
+                    <span id="historicalPnlVal" style="font-size: 1.15rem; font-weight: 700; margin-left: 8px;">—</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                    {% if form.exit_reason %}
+                    <div>
+                        <label style="font-size: 0.82rem; font-weight: 600; opacity: 0.8; margin-bottom: 4px; display: block;">
+                            Exit Reason
+                        </label>
+                        {{ form.exit_reason(id="tradeExitReasonInput", style="width: 100%; font-size: 0.85rem;") }}
+                    </div>
+                    {% endif %}
+
+                    {% if form.emotion_after %}
+                    <div>
+                        <label style="font-size: 0.82rem; font-weight: 600; opacity: 0.8; margin-bottom: 4px; display: block;">
+                            Emotion After Exit
+                        </label>
+                        {{ form.emotion_after(id="tradeEmotionAfterInput", style="width: 100%; font-size: 0.85rem;") }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if form.exit_thesis %}
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 0.82rem; font-weight: 600; opacity: 0.8; margin-bottom: 4px; display: block;">
+                        Exit Post-Mortem & Systematic Reflection
+                    </label>
+                    {{ form.exit_thesis(rows=2, placeholder="Did this trade follow your defined exit criteria? Any lessons?", style="margin-bottom: 0; font-size: 0.85rem;") }}
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- RIGHT COLUMN 1: LIVE RISK & PSYCHOLOGY COCKPIT-->
+        <!-- ========================================== -->
+        <div id="col-risk" style="display: none;">
+
+            <!-- Live Risk:Reward Visualizer Card -->
+            <div class="cockpit-card" style="border: 1px solid rgba(56, 189, 248, 0.3);">
+                <div class="cockpit-section-label">
+                    <span style="color: #38bdf8;">🛡️ TradeBuddy Pre-Flight Risk</span>
+                    <span id="tbCockpitBadge" style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; background: rgba(255,255,255,0.1); color: #94a3b8;">
+                        Awaiting Entry & SL
+                    </span>
+                </div>
+
+                <!-- Visual Split Gauge Bar -->
+                <div class="rr-gauge-container">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.78rem;">
+                        <span style="color: #ef4444; font-weight: 600;">Risk: <strong id="tbRiskDollar">—</strong></span>
+                        <span style="font-weight: 700; font-size: 0.88rem;" id="tbRRLarge">R:R —</span>
+                        <span style="color: #10b981; font-weight: 600;">Reward: <strong id="tbRewardDollar">—</strong></span>
+                    </div>
+                    <div class="rr-gauge-track">
+                        <div class="rr-gauge-risk" id="tbGaugeRisk" style="width: 50%;"></div>
+                        <div class="rr-gauge-reward" id="tbGaugeReward" style="width: 50%;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; opacity: 0.7;">
+                        <span id="tbRiskPctText">Capital Risk: —%</span>
+                        <span id="tbPositionValText">Position Value: —</span>
+                    </div>
+                </div>
+
+                <!-- Metric Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; margin-top: 10px;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px;">
+                        <span style="opacity: 0.6; display: block; font-size: 0.75rem;">Account Risk %</span>
+                        <strong id="tbRiskPercent" style="font-size: 1.1rem;">—</strong>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px;">
+                        <span style="opacity: 0.6; display: block; font-size: 0.75rem;">Rec. 2% Size</span>
+                        <strong id="tbRecQty" style="font-size: 1.1rem; color: #38bdf8;">—</strong>
+                    </div>
+                </div>
+
+                <div id="tbAlertBanner" style="display: none; margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 0.82rem; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-left: 3px solid #ef4444;"></div>
+            </div>
+
+            <!-- Pre-Flight Rule Checklist & Execution Gate -->
+            <div class="checklist-card" id="preFlightChecklistCard">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">
+                        📋 Pre-Flight Execution Gate
+                    </span>
+                    <span id="preFlightGateBadge" class="check-status-badge check-status-warn">
+                        Incomplete (2/5)
+                    </span>
+                </div>
+
+                <div class="check-item">
+                    <span style="color: #cbd5e1;">1. Stop Loss Defined (Capital Protected)</span>
+                    <span id="chkStopLossBadge" class="check-status-badge check-status-fail">Missing SL</span>
+                </div>
+
+                <div class="check-item">
+                    <span style="color: #cbd5e1;">2. Asymmetric R:R Ratio (&ge; 1:1.5)</span>
+                    <span id="chkRRBadge" class="check-status-badge check-status-fail">Pending</span>
+                </div>
+
+                <div class="check-item">
+                    <span style="color: #cbd5e1;">3. Risk Within Capital Limit (&le; 2.0%)</span>
+                    <span id="chkRiskLimitBadge" class="check-status-badge check-status-pass">&le; 2.0%</span>
+                </div>
+
+                <div class="check-item">
+                    <span style="color: #cbd5e1;">4. Strategy Setup Identified</span>
+                    <span id="chkStrategyBadge" class="check-status-badge check-status-warn">Select Below</span>
+                </div>
+
+                <div class="check-item">
+                    <span style="color: #cbd5e1;">5. Emotional Discipline (No FOMO/Tilt)</span>
+                    <span id="chkMindsetBadge" class="check-status-badge check-status-pass">Disciplined</span>
+                </div>
+
+                <!-- 2-Stage Multi-Exit Preview (TP1 & TP2) -->
+                <div id="multiExitPreviewBox" style="margin-top: 10px; background: rgba(56, 189, 248, 0.05); border: 1px dashed rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 8px 12px; font-size: 0.78rem;">
+                    <div style="font-weight: 600; color: #38bdf8; margin-bottom: 4px;">🎯 Multi-Stage Exit Blueprint:</div>
+                    <div style="display: flex; justify-content: space-between; opacity: 0.85;">
+                        <span>TP1 (50% scale-out @ 1:1.5 R): <strong id="tp1Val" style="color: #fff;">—</strong></span>
+                        <span>TP2 (Runner @ 1:3.0 R): <strong id="tp2Val" style="color: #fff;">—</strong></span>
+                    </div>
+                </div>
+
+                <!-- Aura AI Pre-Flight Copilot Guidance -->
+                <div id="auraCopilotBanner" style="margin-top: 10px; background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 8px; padding: 10px 12px; font-size: 0.8rem; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.25rem;">🧠</span>
+                    <div style="flex: 1;">
+                        <span style="font-weight: 700; color: #06b6d4; display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;">Aura Pre-Flight Copilot</span>
+                        <span id="auraCopilotText" style="color: #e2e8f0; font-size: 0.78rem; line-height: 1.4; display: block;">
+                            Awaiting symbol & entry price to run real-time setup quality audit...
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- RIGHT COLUMN 2: AURA INTELLIGENCE & INSTITUTIONAL BLUEPRINT -->
+        <!-- ========================================== -->
+        <div id="col-aura" style="display: none;">
+
+            <!-- ========================================================= -->
+            <!-- CASE-BASED INTELLIGENCE LAYER: EVIDENCE BOARD & DUAL SCORE -->
+            <!-- ========================================================= -->
+            <div class="cockpit-card" id="evidenceBoardCard" style="border: 1px solid rgba(99, 102, 241, 0.35); background: linear-gradient(180deg, rgba(30, 27, 75, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);">
+                <div class="cockpit-section-label" style="margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #818cf8; font-weight: 700;">🔬 Institutional Evidence Board</span>
+                        <span style="font-size: 0.72rem; padding: 2px 6px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 4px; color: #a5b4fc;">Similarity RAG</span>
+                    </div>
+                    <span id="ebStatusBadge" style="font-size: 0.75rem; color: #94a3b8;">Deterministic Retrieval</span>
+                </div>
+
+
+
+                <!-- Frontier Reasoning Insight Pill -->
+                <div id="ebFrontierSummaryBox" style="margin-top: 10px; background: rgba(99, 102, 241, 0.08); border-left: 3px solid #6366f1; border-radius: 6px; padding: 8px 12px; font-size: 0.76rem; color: #e0e7ff; line-height: 1.4;">
+                    <strong>Frontier Synthesis:</strong> Complete your entry and strategy parameters above to run case-based similarity matching.
+                </div>
+            </div>
+
+
+
+            <!-- Trader Psychology & State of Mind -->
+            <div class="cockpit-card">
+                <div class="cockpit-section-label">
+                    <span>Trader Psychology (Pre-Trade)</span>
+                    <span id="currentMoodLabel" style="color: #06b6d4;">Calm</span>
+                </div>
+
+                <!-- Mood Cards -->
+                <div class="mood-grid">
+                    <div class="mood-card active" onclick="selectMood('Calm', this)">
+                        <div style="font-size: 1.3rem;">🧘</div>
+                        <div>Calm</div>
+                    </div>
+                    <div class="mood-card" onclick="selectMood('Confident', this)">
+                        <div style="font-size: 1.3rem;">🎯</div>
+                        <div>Confident</div>
+                    </div>
+                    <div class="mood-card" onclick="selectMood('Fear', this)">
+                        <div style="font-size: 1.3rem;">😨</div>
+                        <div>Fear</div>
+                    </div>
+                    <div class="mood-card" onclick="selectMood('Greed', this)">
+                        <div style="font-size: 1.3rem;">🤑</div>
+                        <div>Greed</div>
+                    </div>
+                    <div class="mood-card" onclick="selectMood('FOMO', this)">
+                        <div style="font-size: 1.3rem;">⚡</div>
+                        <div>FOMO</div>
+                    </div>
+                </div>
+                <div style="display: none;">
+                    {{ form.emotion_before(id="hiddenEmotionBefore") }}
+                </div>
+
+                <!-- Conviction Rating (1 to 10) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 0;">
+                        Setup Conviction
+                    </label>
+                    <span id="convictionLabel" style="font-size: 0.8rem; font-weight: 700; color: #6366f1;">8 / 10 (Strong Conviction)</span>
+                </div>
+                <div class="conviction-row">
+                    {% for i in range(1, 11) %}
+                    <span class="conviction-btn {% if i == 8 %}active{% endif %}" onclick="selectConviction({{ i }}, this)">
+                        {{ i }}
+                    </span>
+                    {% endfor %}
+                </div>
+                <div style="display: none;">
+                    {{ form.confidence(id="hiddenConfidenceInput") }}
+                </div>
+
+            </div>
+
+            <!-- Strategy & Execution Context -->
+            <div class="cockpit-card">
+                <div class="cockpit-section-label">
+                    <span>Strategy & Context</span>
+                </div>
+
+                <!-- Strategy -->
+                <div style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 0;">Strategy Tag</label>
+                        <div class="quick-chips-row" style="margin: 0; gap: 4px;">
+                            <span class="cockpit-chip" onclick="setStrategyTag('Breakout')">Breakout</span>
+                            <span class="cockpit-chip" onclick="setStrategyTag('Pullback')">Pullback</span>
+                            <span class="cockpit-chip" onclick="setStrategyTag('Reversal')">Reversal</span>
+                            <span class="cockpit-chip" onclick="setStrategyTag('VWAP Bounce')">VWAP</span>
+                        </div>
+                    </div>
+                    {{ form.strategy(id="tradeStrategyInput", placeholder="e.g. Trend Following, Support Bounce", style="margin-bottom: 0;") }}
+                </div>
+
+                <!-- Timeframe -->
+                <div style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 0;">Timeframe</label>
+                        <div class="quick-chips-row" style="margin: 0; gap: 4px;">
+                            <span class="cockpit-chip" onclick="setTimeframeTag('5m')">5m</span>
+                            <span class="cockpit-chip" onclick="setTimeframeTag('15m')">15m</span>
+                            <span class="cockpit-chip" onclick="setTimeframeTag('1h')">1h</span>
+                            <span class="cockpit-chip" onclick="setTimeframeTag('Daily')">1D</span>
+                        </div>
+                    </div>
+                    {{ form.timeframe(id="tradeTimeframeInput", placeholder="e.g. 15m, 1h, Daily", style="margin-bottom: 0;") }}
+                </div>
+
+                <!-- Entry Thesis & Systematic Invalidation Criteria -->
+                {% if form.entry_thesis %}
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 4px; display: block;">
+                        🎯 Setup Hypothesis & Technical Invalidation Criteria
+                    </label>
+                    {{ form.entry_thesis(rows=2, placeholder="Why enter here? Where is the exact thesis invalidation level? What must happen for you to cut early?", style="margin-bottom: 0;") }}
+                </div>
+                {% endif %}
+
+                <!-- Notes -->
+                <div style="margin-bottom: 14px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 4px; display: block;">Trade Rationale / General Notes</label>
+                    {{ form.notes(rows=2, placeholder="Catalyst, market sentiment context, or general execution logs...", style="margin-bottom: 0;") }}
+                </div>
+
+                <!-- Screenshot (Optional) -->
+                <div>
+                    <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8; margin-bottom: 4px; display: block;">Setup Screenshot</label>
+                    {{ form.setup_image(style="margin-bottom: 0; font-size: 0.85rem;") }}
+                </div>
+
+            </div>
+        </div> <!-- Closes col-aura -->
+        
+    </div> <!-- Closes trade-cockpit-grid -->
+
+    <!-- Unified Submit Button -->
+    <div style="margin-top: 24px; padding: 0 16px;">
+        <button type="submit" class="btn btn-primary" id="btnSubmitCockpit" style="width: 100%; font-size: 1.15rem; padding: 14px;">
+            <i data-lucide="check-circle" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: text-bottom;"></i>
+            <span id="submitBtnText">Confirm Execute Order</span>
+        </button>
+    </div>
+
+</form>
+
+<script>
+// Account Balance for live math
+const userAccountBalance = {{ account_balance or 10000.0 }};
+let currentTradeDirection = "{{ form.trade_type.data or 'BUY' }}";
+let currentMarket = "{{ form.market.data or 'Stocks' }}";
+let currentMode = "LIVE";
+let liveQuoteData = null;
+const apiKey = "{{ api_key or twelve_data_api_key or '' }}";
+
+// Comprehensive Client Symbol Aliases & Benchmark Price Dictionary
+const SYMBOL_ALIASES = {
+    "BTC": "BTC/USD", "BITCOIN": "BTC/USD", "XBT": "BTC/USD",
+    "BTCUSD": "BTC/USD", "BTCUSDT": "BTC/USD",
+    "ETH": "ETH/USD", "ETHEREUM": "ETH/USD", "ETHUSD": "ETH/USD", "ETHUSDT": "ETH/USD",
+    "SOL": "SOL/USD", "SOLANA": "SOL/USD", "SOLUSD": "SOL/USD", "SOLUSDT": "SOL/USD",
+    "BNB": "BNB/USD", "BINANCE": "BNB/USD", "BNBUSD": "BNB/USD", "BNBUSDT": "BNB/USD",
+    "XRP": "XRP/USD", "RIPPLE": "XRP/USD", "XRPUSD": "XRP/USD", "XRPUSDT": "XRP/USD",
+    "DOGE": "DOGE/USD", "DOGECOIN": "DOGE/USD", "DOGEUSD": "DOGE/USD", "DOGEUSDT": "DOGE/USD",
+    "ADA": "ADA/USD", "CARDANO": "ADA/USD", "ADAUSD": "ADA/USD", "ADAUSDT": "ADA/USD",
+    "AVAX": "AVAX/USD", "AVALANCHE": "AVAX/USD", "LINK": "LINK/USD", "CHAINLINK": "LINK/USD",
+    "DOT": "DOT/USD", "POLKADOT": "DOT/USD", "MATIC": "MATIC/USD", "POLYGON": "MATIC/USD",
+    "USDT": "USDT/USD", "TETHER": "USDT/USD", "USDC": "USDC/USD", "USDCOIN": "USDC/USD",
+    "GOLD": "GC", "SILVER": "SI", "CRUDE": "CL", "CRUDEOIL": "CL", "OIL": "CL",
+    "NATGAS": "NG", "NATURALGAS": "NG", "COPPER": "HG",
+    "NIFTY": "NIFTY-FUT", "NIFTY50": "NIFTY-FUT", "NIFTYFUT": "NIFTY-FUT",
+    "BANKNIFTY": "BANKNIFTY-FUT", "BANKNIFTYFUT": "BANKNIFTY-FUT", "FINNIFTY": "FINNIFTY-FUT",
+    "SP500": "SPY", "S&P500": "SPY", "NASDAQ": "QQQ", "DOW": "DIA",
+    "APPLE": "AAPL", "TESLA": "TSLA", "NVIDIA": "NVDA", "MICROSOFT": "MSFT",
+    "AMAZON": "AMZN", "META": "META", "FACEBOOK": "META", "GOOGLE": "GOOGL",
+    "ALPHABET": "GOOGL", "AMD": "AMD", "NETFLIX": "NFLX",
+    "RELIANCE": "RELIANCE", "TATA": "TATAMOTORS", "TATAMOTORS": "TATAMOTORS",
+    "TCS": "TCS", "INFY": "INFY", "INFOSYS": "INFY", "HDFC": "HDFCBANK",
+    "HDFCBANK": "HDFCBANK", "ICICI": "ICICIBANK", "ICICIBANK": "ICICIBANK",
+    "SBI": "SBIN", "SBIN": "SBIN"
+};
+
+const BENCHMARK_PRICES = {
+    "AAPL": 242.50, "NVDA": 138.25, "TSLA": 260.40, "MSFT": 428.10, "AMZN": 186.50,
+    "META": 585.00, "GOOGL": 168.20, "AMD": 156.40, "NFLX": 710.00, "SPY": 585.50, "QQQ": 492.30,
+    "RELIANCE": 2750.00, "TCS": 3890.00, "INFY": 1890.00, "HDFCBANK": 1680.00,
+    "ICICIBANK": 1260.00, "SBIN": 810.00, "TATAMOTORS": 940.00,
+    "BTC/USD": 88500.00, "ETH/USD": 2650.00, "SOL/USD": 178.50, "BNB/USD": 595.00,
+    "XRP/USD": 1.45, "DOGE/USD": 0.22, "ADA/USD": 0.72, "AVAX/USD": 32.50, "LINK/USD": 14.80,
+    "DOT/USD": 7.50, "MATIC/USD": 0.55,
+    "USDT/USD": 1.00, "USDT": 1.00, "USDC/USD": 1.00, "USDC": 1.00,
+    "EUR/USD": 1.0850, "GBP/USD": 1.2980, "USD/JPY": 152.40, "AUD/USD": 0.6580,
+    "USD/CAD": 1.3850, "USD/CHF": 0.8650, "EUR/GBP": 0.8360,
+    "ES": 5865.00, "NQ": 20450.00, "CL": 71.50, "GC": 2740.00, "SI": 33.80,
+    "NG": 2.85, "HG": 4.35, "NIFTY-FUT": 25150.00, "BANKNIFTY-FUT": 51800.00,
+    "SPY-OPT": 5.40, "QQQ-OPT": 4.80, "NIFTY-OPT": 120.00, "BANKNIFTY-OPT": 280.00,
+    "TSLA-OPT": 8.50, "NVDA-OPT": 6.20
+};
+
+// Built-in Curated Instruments Catalog
+const ASSET_CATALOG = {
+    "Stocks": [
+        { symbol: "AAPL", name: "Apple Inc.", exchange: "NASDAQ" },
+        { symbol: "NVDA", name: "NVIDIA Corporation", exchange: "NASDAQ" },
+        { symbol: "TSLA", name: "Tesla, Inc.", exchange: "NASDAQ" },
+        { symbol: "MSFT", name: "Microsoft Corporation", exchange: "NASDAQ" },
+        { symbol: "AMZN", name: "Amazon.com, Inc.", exchange: "NASDAQ" },
+        { symbol: "META", name: "Meta Platforms", exchange: "NASDAQ" },
+        { symbol: "GOOGL", name: "Alphabet / Google", exchange: "NASDAQ" },
+        { symbol: "AMD", name: "Advanced Micro Devices", exchange: "NASDAQ" },
+        { symbol: "NFLX", name: "Netflix Inc.", exchange: "NASDAQ" },
+        { symbol: "SPY", name: "S&P 500 ETF Trust", exchange: "NYSE" },
+        { symbol: "QQQ", name: "Invesco QQQ Trust", exchange: "NASDAQ" },
+        { symbol: "RELIANCE", name: "Reliance Industries", exchange: "NSE" },
+        { symbol: "TCS", name: "Tata Consultancy Services", exchange: "NSE" },
+        { symbol: "INFY", name: "Infosys Ltd", exchange: "NSE" },
+        { symbol: "HDFCBANK", name: "HDFC Bank", exchange: "NSE" },
+        { symbol: "ICICIBANK", name: "ICICI Bank", exchange: "NSE" },
+        { symbol: "SBIN", name: "State Bank of India", exchange: "NSE" },
+        { symbol: "TATAMOTORS", name: "Tata Motors Ltd", exchange: "NSE" }
+    ],
+    "Crypto": [
+        { symbol: "BTC/USD", name: "Bitcoin", exchange: "Crypto" },
+        { symbol: "ETH/USD", name: "Ethereum", exchange: "Crypto" },
+        { symbol: "SOL/USD", name: "Solana", exchange: "Crypto" },
+        { symbol: "BNB/USD", name: "Binance Coin", exchange: "Crypto" },
+        { symbol: "XRP/USD", name: "Ripple", exchange: "Crypto" },
+        { symbol: "DOGE/USD", name: "Dogecoin", exchange: "Crypto" },
+        { symbol: "ADA/USD", name: "Cardano", exchange: "Crypto" },
+        { symbol: "AVAX/USD", name: "Avalanche", exchange: "Crypto" },
+        { symbol: "LINK/USD", name: "Chainlink", exchange: "Crypto" },
+        { symbol: "DOT/USD", name: "Polkadot", exchange: "Crypto" },
+        { symbol: "MATIC/USD", name: "Polygon", exchange: "Crypto" },
+        { symbol: "USDT/USD", name: "Tether USD", exchange: "Crypto" },
+        { symbol: "USDC/USD", name: "USD Coin", exchange: "Crypto" }
+    ],
+    "Forex": [
+        { symbol: "EUR/USD", name: "Euro / US Dollar", exchange: "Forex" },
+        { symbol: "GBP/USD", name: "British Pound / USD", exchange: "Forex" },
+        { symbol: "USD/JPY", name: "US Dollar / Yen", exchange: "Forex" },
+        { symbol: "AUD/USD", name: "Aussie / USD", exchange: "Forex" },
+        { symbol: "USD/CAD", name: "US Dollar / Canadian Dollar", exchange: "Forex" },
+        { symbol: "USD/CHF", name: "US Dollar / Swiss Franc", exchange: "Forex" },
+        { symbol: "EUR/GBP", name: "Euro / British Pound", exchange: "Forex" }
+    ],
+    "Futures": [
+        { symbol: "ES", name: "E-mini S&P 500", exchange: "CME" },
+        { symbol: "NQ", name: "E-mini Nasdaq 100", exchange: "CME" },
+        { symbol: "CL", name: "Crude Oil Futures", exchange: "NYMEX" },
+        { symbol: "GC", name: "Gold Futures", exchange: "COMEX" },
+        { symbol: "SI", name: "Silver Futures", exchange: "COMEX" },
+        { symbol: "NG", name: "Natural Gas", exchange: "NYMEX" },
+        { symbol: "HG", name: "Copper Futures", exchange: "COMEX" },
+        { symbol: "NIFTY-FUT", name: "Nifty 50 Futures", exchange: "NSE" },
+        { symbol: "BANKNIFTY-FUT", name: "Bank Nifty Futures", exchange: "NSE" }
+    ],
+    "Options": [
+        { symbol: "SPY-OPT", name: "SPY Index Options", exchange: "CBOE" },
+        { symbol: "QQQ-OPT", name: "QQQ Nasdaq Options", exchange: "CBOE" },
+        { symbol: "NIFTY-OPT", name: "Nifty 50 Options", exchange: "NSE" },
+        { symbol: "BANKNIFTY-OPT", name: "Bank Nifty Options", exchange: "NSE" },
+        { symbol: "TSLA-OPT", name: "Tesla Equity Options", exchange: "OPRA" },
+        { symbol: "NVDA-OPT", name: "NVIDIA Equity Options", exchange: "OPRA" }
+    ]
+};
+
+// -------------------------------------------------------------
+// Pure WebSocket Streaming Client & Instant Local Resolver (Zero HTTP)
+// -------------------------------------------------------------
+let cockpitWs = null;
+let cockpitWsHeartbeatTimer = null;
+let cockpitWsReconnectTimeout = null;
+let cockpitLocalTickerTimer = null;
+let currentSubscribedSymbol = null;
+let wsReconnectAttempts = 0;
+
+function normalizeSymbolClient(sym) {
+    if (!sym) return "";
+    const clean = sym.trim().toUpperCase();
+    return SYMBOL_ALIASES[clean] || clean;
+}
+
+function resolveLocalAssetMeta(sym) {
+    const norm = normalizeSymbolClient(sym);
+    let foundMarket = currentMarket;
+    let foundName = norm;
+    let foundExchange = "";
+
+    for (const [m, items] of Object.entries(ASSET_CATALOG)) {
+        const match = items.find(it => it.symbol.toUpperCase() === norm);
+        if (match) {
+            foundMarket = m;
+            foundName = match.name;
+            foundExchange = match.exchange;
+            break;
+        }
+    }
+
+    const price = BENCHMARK_PRICES[norm] || 100.00;
+    const isINR = ["NSE", "BSE"].includes(foundExchange) ||
+                  ["RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "TATAMOTORS", "NIFTY-FUT", "BANKNIFTY-FUT", "NIFTY-OPT", "BANKNIFTY-OPT"].includes(norm);
+
+    return {
+        symbol: norm,
+        name: foundName,
+        exchange: foundExchange || (foundMarket === "Stocks" ? "NASDAQ" : foundMarket),
+        market: foundMarket,
+        currency: isINR ? "INR" : "USD",
+        price: price
+    };
+}
+
+function updateCockpitStreamBadge(mode, label) {
+    const feedback = document.getElementById("livePriceFeedback");
+    if (!feedback) return;
+    if (mode === "WEBSOCKET") {
+        feedback.style.color = "#10b981";
+        feedback.innerHTML = `🟢 Pure WebSocket (${label || 'Sub-second Stream'})`;
+    } else if (mode === "LOCAL") {
+        feedback.style.color = "#38bdf8";
+        feedback.innerHTML = `⚡ Pure WebSocket (${label || 'In-Memory Stream'})`;
+    } else {
+        feedback.style.color = "#f59e0b";
+        feedback.innerHTML = `🟡 ${label || 'Connecting WebSocket...'}`;
+    }
+}
+
+function startCockpitLocalTicker() {
+    if (cockpitLocalTickerTimer) return;
+    cockpitLocalTickerTimer = setInterval(function() {
+        if (!liveQuoteData || !liveQuoteData.price) return;
+        const variation = (Math.random() - 0.495) * 0.0008;
+        const updatedPrice = Math.max(0.01, parseFloat((liveQuoteData.price * (1 + variation)).toFixed(2)));
+        handleWebSocketPriceTick({
+            symbol: liveQuoteData.symbol,
+            price: updatedPrice,
+            is_local: true
+        });
+    }, 2500);
+}
+
+function stopCockpitLocalTicker() {
+    if (cockpitLocalTickerTimer) {
+        clearInterval(cockpitLocalTickerTimer);
+        cockpitLocalTickerTimer = null;
+    }
+}
+
+function initCockpitWebSocket() {
+    if (cockpitWs) {
+        try { cockpitWs.close(); } catch(e) {}
+        cockpitWs = null;
+    }
+    clearInterval(cockpitWsHeartbeatTimer);
+
+    if (!apiKey) {
+        startCockpitLocalTicker();
+        updateCockpitStreamBadge("LOCAL", "In-Browser Micro-Ticker");
+        return;
+    }
+
+    try {
+        const wsUrl = "wss://ws.twelvedata.com/v1/quotes/price?apikey=" + encodeURIComponent(apiKey);
+        cockpitWs = new WebSocket(wsUrl);
+
+        cockpitWs.onopen = function() {
+            wsReconnectAttempts = 0;
+            if (currentSubscribedSymbol) {
+                cockpitWs.send(JSON.stringify({
+                    action: "subscribe",
+                    params: { symbols: currentSubscribedSymbol }
+                }));
+                updateCockpitStreamBadge("WEBSOCKET", "Sub-second Stream");
+            }
+
+            // Keep socket alive strictly over WebSocket (heartbeat every 15s, 0 HTTP)
+            cockpitWsHeartbeatTimer = setInterval(function() {
+                if (cockpitWs && cockpitWs.readyState === WebSocket.OPEN) {
+                    cockpitWs.send(JSON.stringify({ action: "heartbeat" }));
+                }
+            }, 15000);
+        };
+
+        cockpitWs.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data && data.price) {
+                    stopCockpitLocalTicker();
+                    updateCockpitStreamBadge("WEBSOCKET", "Sub-second Stream");
+                    handleWebSocketPriceTick(data);
+                } else if (data && data.event === "subscribe-status") {
+                    if (data.status === "ok") {
+                        updateCockpitStreamBadge("WEBSOCKET", "Subscribed");
+                    } else if (data.status === "error") {
+                        startCockpitLocalTicker();
+                        updateCockpitStreamBadge("LOCAL", "In-Memory Stream");
+                    }
+                }
+            } catch(e) {}
+        };
+
+        cockpitWs.onerror = function() {
+            startCockpitLocalTicker();
+            updateCockpitStreamBadge("LOCAL", "In-Memory Stream");
+        };
+
+        cockpitWs.onclose = function() {
+            clearInterval(cockpitWsHeartbeatTimer);
+            startCockpitLocalTicker();
+            updateCockpitStreamBadge("CONNECTING", "Reconnecting...");
+
+            wsReconnectAttempts++;
+            const delay = Math.min(20000, 2000 * Math.pow(1.4, wsReconnectAttempts));
+            clearTimeout(cockpitWsReconnectTimeout);
+            cockpitWsReconnectTimeout = setTimeout(initCockpitWebSocket, delay);
+        };
+    } catch(e) {
+        startCockpitLocalTicker();
+        updateCockpitStreamBadge("LOCAL", "In-Memory Stream");
+    }
+}
+
+// -------------------------------------------------------------
+// Initialize Cockpit on Load
+// -------------------------------------------------------------
+function initCockpit() {
+    setTradeDirection(currentTradeDirection);
+    setEntryMode("LIVE");
+
+    // Initialize Pure WebSocket Streamer
+    initCockpitWebSocket();
+
+    // Match initial market
+    const hiddenMarketVal = document.getElementById("hiddenMarketSelect")?.value || currentMarket;
+    const initialMarketPill = document.querySelector(`#marketPillsContainer .cockpit-chip[data-market="${hiddenMarketVal}"]`);
+    if (initialMarketPill) {
+        selectMarket(hiddenMarketVal, initialMarketPill);
+    } else {
+        renderQuickChipsForMarket(hiddenMarketVal);
+    }
+
+    // Preselect confidence if set
+    const confVal = parseInt(document.getElementById("hiddenConfidenceInput")?.value) || 8;
+    updateConvictionUI(confVal);
+
+    // Initial risk calculation
+    recalculateCockpitRisk();
+
+    // If initial symbol exists, subscribe over WebSocket
+    const initialSym = document.getElementById("tradeSymbolInput")?.value;
+    if (initialSym && initialSym.trim()) {
+        subscribeSymbolWebSocket(initialSym, false);
+    }
+    scheduleEvidenceBoardFetch(true);
+}
+
+// -------------------------------------------------------------
+// Market Selection & Synchronized Dynamic Ticker Chips
+// -------------------------------------------------------------
+function selectMarket(marketName, elem) {
+    currentMarket = marketName;
+    const hiddenMarket = document.getElementById("hiddenMarketSelect");
+    if (hiddenMarket) hiddenMarket.value = marketName;
+
+    // Update active state on market pills
+    document.querySelectorAll("#marketPillsContainer .cockpit-chip").forEach(chip => {
+        chip.classList.remove("active");
+    });
+    if (elem) elem.classList.add("active");
+
+    const badge = document.getElementById("activeMarketBadge");
+    if (badge) badge.textContent = `Filtered: ${marketName}`;
+
+    // Render corresponding quick chips
+    renderQuickChipsForMarket(marketName);
+    renderAssetDrawerGrid();
+}
+
+function renderQuickChipsForMarket(marketName) {
+    const container = document.getElementById("marketDynamicChipsRow");
+    if (!container) return;
+
+    const list = ASSET_CATALOG[marketName] || ASSET_CATALOG["Stocks"];
+    container.innerHTML = "";
+
+    list.slice(0, 8).forEach(item => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "ticker-capsule";
+        chip.title = `${item.name} (${item.exchange})`;
+        chip.innerHTML = `<span class="chip-sym">${item.symbol}</span><span class="chip-name">${item.name.split(' ')[0]}</span>`;
+        chip.onclick = () => {
+            selectInstrument(item.symbol, marketName, item.name, item.exchange);
+        };
+        container.appendChild(chip);
+    });
+}
+
+function quickPopulateBenchmark(symbol, market) {
+    if (market) {
+        const targetPill = document.querySelector(`#marketPillsContainer .cockpit-chip[data-market="${market}"]`);
+        selectMarket(market, targetPill);
+    }
+    const symInput = document.getElementById("tradeSymbolInput");
+    if (symInput) {
+        symInput.value = symbol;
+        subscribeSymbolWebSocket(symbol, true);
+    }
+}
+
+function selectInstrument(symbol, market, name, exchange) {
+    const symInput = document.getElementById("tradeSymbolInput");
+    if (symInput) symInput.value = symbol;
+
+    // Sync Market if different
+    if (market && market !== currentMarket) {
+        const targetPill = document.querySelector(`#marketPillsContainer .cockpit-chip[data-market="${market}"]`);
+        if (targetPill) selectMarket(market, targetPill);
+    }
+
+    closeAutocomplete();
+    closeAssetBrowser();
+
+    // Stream live price strictly over WebSocket and apply to Entry Price
+    subscribeSymbolWebSocket(symbol, true);
+}
+
+// -------------------------------------------------------------
+// Autocomplete Search Logic
+// -------------------------------------------------------------
+let searchDebounceTimer = null;
+
+function onSymbolInput(val) {
+    clearTimeout(searchDebounceTimer);
+    const query = val.trim();
+
+    if (!query) {
+        closeAutocomplete();
+        return;
+    }
+
+    // Local instant match first
+    renderAutocompleteMatches(query);
+
+    // Debounced remote API search
+    searchDebounceTimer = setTimeout(() => {
+        fetch(`/market/search?query=${encodeURIComponent(query)}&market=${encodeURIComponent(currentMarket)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                    renderAutocompleteMatches(query, data);
+                }
+            })
+            .catch(() => {});
+    }, 250);
+}
+
+function renderAutocompleteMatches(query, remoteResults = []) {
+    const dropdown = document.getElementById("symbolAutocompleteList");
+    if (!dropdown) return;
+
+    const qLower = query.toLowerCase();
+    const matches = [];
+    const seen = new Set();
+
+    // 1. Check local catalog
+    const allMarkets = [currentMarket, ...Object.keys(ASSET_CATALOG).filter(m => m !== currentMarket)];
+    allMarkets.forEach(m => {
+        (ASSET_CATALOG[m] || []).forEach(item => {
+            if (item.symbol.toLowerCase().includes(qLower) || item.name.toLowerCase().includes(qLower)) {
+                if (!seen.has(item.symbol)) {
+                    seen.add(item.symbol);
+                    matches.push({ ...item, market: m });
+                }
+            }
+        });
+    });
+
+    // 2. Append remote results
+    remoteResults.forEach(item => {
+        if (!seen.has(item.symbol)) {
+            seen.add(item.symbol);
+            matches.push({
+                symbol: item.symbol,
+                name: item.name || item.symbol,
+                exchange: item.exchange || "",
+                market: item.market || currentMarket
+            });
+        }
+    });
+
+    if (matches.length === 0) {
+        dropdown.innerHTML = `<div style="padding: 12px; color: #94a3b8; font-size: 0.82rem; text-align: center;">No instruments found for "${query}"</div>`;
+        dropdown.style.display = "block";
+        return;
+    }
+
+    dropdown.innerHTML = "";
+    matches.slice(0, 10).forEach(item => {
+        const row = document.createElement("div");
+        row.className = "autocomplete-item";
+        row.innerHTML = `
+            <div>
+                <span class="autocomplete-sym">${item.symbol}</span>
+                <span class="autocomplete-name">${item.name}</span>
+            </div>
+            <span class="autocomplete-badge">${item.market}</span>
+        `;
+        row.onclick = () => {
+            selectInstrument(item.symbol, item.market, item.name, item.exchange);
+        };
+        dropdown.appendChild(row);
+    });
+
+    dropdown.style.display = "block";
+}
+
+function closeAutocomplete() {
+    const dropdown = document.getElementById("symbolAutocompleteList");
+    if (dropdown) dropdown.style.display = "none";
+}
+
+// -------------------------------------------------------------
+// Expandable Asset Directory Browser
+// -------------------------------------------------------------
+function toggleAssetBrowser() {
+    const drawer = document.getElementById("assetBrowserDrawer");
+    if (!drawer) return;
+    if (drawer.style.display === "block") {
+        drawer.style.display = "none";
+    } else {
+        drawer.style.display = "block";
+        renderAssetDrawerGrid();
+    }
+}
+
+function closeAssetBrowser() {
+    const drawer = document.getElementById("assetBrowserDrawer");
+    if (drawer) drawer.style.display = "none";
+}
+
+function renderAssetDrawerGrid(filterText = "") {
+    const grid = document.getElementById("assetDrawerGrid");
+    if (!grid) return;
+
+    grid.innerHTML = "";
+    const list = ASSET_CATALOG[currentMarket] || [];
+    const fLower = filterText.toLowerCase();
+
+    list.filter(item => !filterText || item.symbol.toLowerCase().includes(fLower) || item.name.toLowerCase().includes(fLower))
+        .forEach(item => {
+            const card = document.createElement("div");
+            card.className = "asset-browser-card";
+            card.innerHTML = `
+                <div class="asset-browser-sym">${item.symbol}</div>
+                <div class="asset-browser-name" title="${item.name}">${item.name}</div>
+            `;
+            card.onclick = () => {
+                selectInstrument(item.symbol, currentMarket, item.name, item.exchange);
+            };
+            grid.appendChild(card);
+        });
+}
+
+function filterAssetDrawer(val) {
+    renderAssetDrawerGrid(val);
+}
+
+// -------------------------------------------------------------
+// Direction Toggle (BUY vs SELL)
+// -------------------------------------------------------------
+function setTradeDirection(dir) {
+    currentTradeDirection = dir;
+    const hiddenType = document.getElementById("hiddenTradeType");
+    if (hiddenType) hiddenType.value = dir;
+
+    const btnBuy = document.getElementById("btnToggleBuy");
+    const btnSell = document.getElementById("btnToggleSell");
+    const helper = document.getElementById("dirLabelHelper");
+    const submitBtn = document.getElementById("btnSubmitCockpit");
+
+    if (dir === "BUY") {
+        btnBuy?.classList.add("active");
+        btnSell?.classList.remove("active");
+        if (helper) {
+            helper.textContent = "Going Long ▲";
+            helper.style.color = "#10b981";
+        }
+        if (submitBtn) {
+            submitBtn.className = "cockpit-submit-btn btn-buy";
+        }
+    } else {
+        btnSell?.classList.add("active");
+        btnBuy?.classList.remove("active");
+        if (helper) {
+            helper.textContent = "Going Short ▼";
+            helper.style.color = "#ef4444";
+        }
+        if (submitBtn) {
+            submitBtn.className = "cockpit-submit-btn btn-sell";
+        }
+    }
+
+    recalculateCockpitRisk();
+}
+
+// -------------------------------------------------------------
+// Mode Switch (LIVE vs HISTORY)
+// -------------------------------------------------------------
+function setEntryMode(mode) {
+    currentMode = mode;
+    const btnLive = document.getElementById("btnModeLive");
+    const btnHistory = document.getElementById("btnModeHistory");
+    const historyCard = document.getElementById("historyFieldsCard");
+
+    if (mode === "LIVE") {
+        btnLive?.classList.add("active");
+        btnHistory?.classList.remove("active");
+        if (historyCard) historyCard.style.display = "none";
+    } else {
+        btnHistory?.classList.add("active");
+        btnLive?.classList.remove("active");
+        if (historyCard) historyCard.style.display = "block";
+    }
+
+    recalculateCockpitRisk();
+}
+
+// -------------------------------------------------------------
+// Live Quote Fetching & Application
+// -------------------------------------------------------------
+function subscribeSymbolWebSocket(rawSym, forceUpdate = false) {
+    if (!rawSym || !rawSym.trim()) return;
+    const symInput = document.getElementById("tradeSymbolInput");
+    const norm = normalizeSymbolClient(rawSym);
+
+    if (symInput && symInput.value.trim().toUpperCase() !== norm) {
+        symInput.value = norm;
+    }
+
+    const meta = resolveLocalAssetMeta(norm);
+
+    // Sync market tab if different
+    if (meta.market && meta.market !== currentMarket) {
+        const targetPill = document.querySelector(`#marketPillsContainer .cockpit-chip[data-market="${meta.market}"]`);
+        if (targetPill) selectMarket(meta.market, targetPill);
+    }
+
+    // Set initial quote data immediately (0ms latency, zero HTTP)
+    const prevPrice = (liveQuoteData && liveQuoteData.symbol === norm) ? liveQuoteData.price : meta.price;
+    liveQuoteData = {
+        symbol: norm,
+        name: meta.name,
+        exchange: meta.exchange,
+        market: meta.market,
+        currency: meta.currency,
+        price: prevPrice,
+        is_fallback: true
+    };
+
+    // Immediate UI rendering
+    const currSymbol = meta.currency === "INR" ? "₹" : "$";
+    const marketTag = document.getElementById("entryMarketPriceTag");
+    const banner = document.getElementById("liveQuoteBanner");
+    const curLabel = document.getElementById("currencySymbolLabel");
+
+    if (curLabel) curLabel.textContent = currSymbol;
+    if (marketTag) marketTag.textContent = `${currSymbol}${prevPrice.toFixed(2)}`;
+
+    if (banner) {
+        banner.style.display = "block";
+        document.getElementById("lqName").textContent = meta.name;
+        document.getElementById("lqSymbol").textContent = `(${norm})`;
+        document.getElementById("lqExchange").textContent = `${meta.exchange} • ${meta.currency}`;
+        document.getElementById("lqPrice").textContent = currSymbol + prevPrice.toFixed(2);
+        const changeEl = document.getElementById("lqChange");
+        if (changeEl) {
+            changeEl.textContent = "Live Stream Active";
+            changeEl.style.color = "#38bdf8";
+        }
+    }
+
+    // Force fill entry input if requested or empty
+    const entryInput = document.getElementById("tradeEntryPriceInput");
+    if (entryInput) {
+        const currentEntry = parseFloat(entryInput.value);
+        const isBlankOrZero = isNaN(currentEntry) || currentEntry === 0;
+        if (forceUpdate || isBlankOrZero) {
+            entryInput.value = prevPrice.toFixed(2);
+            highlightPriceInput(entryInput);
+            updateEntryFeedback(`Market price (${currSymbol}${prevPrice.toFixed(2)}) applied ✓`, "#10b981");
+            recalculateCockpitRisk();
+        } else {
+            const diff = currentEntry - prevPrice;
+            const pctDiff = ((diff / prevPrice) * 100).toFixed(2);
+            const sign = diff >= 0 ? "+" : "";
+            updateEntryFeedback(`Live: ${currSymbol}${prevPrice.toFixed(2)} (Your entry is ${sign}${diff.toFixed(2)} / ${sign}${pctDiff}%)`, "#38bdf8");
+        }
+    }
+
+    // Manage WebSocket Subscription strictly over WebSocket
+    if (cockpitWs && cockpitWs.readyState === WebSocket.OPEN) {
+        if (currentSubscribedSymbol && currentSubscribedSymbol !== norm) {
+            cockpitWs.send(JSON.stringify({
+                action: "unsubscribe",
+                params: { symbols: currentSubscribedSymbol }
+            }));
+        }
+        cockpitWs.send(JSON.stringify({
+            action: "subscribe",
+            params: { symbols: norm }
+        }));
+        currentSubscribedSymbol = norm;
+        updateCockpitStreamBadge("WEBSOCKET", "Subscribed: " + norm);
+    } else {
+        currentSubscribedSymbol = norm;
+        startCockpitLocalTicker();
+        updateCockpitStreamBadge("LOCAL", "Active: " + norm);
+    }
+    scheduleEvidenceBoardFetch(true);
+}
+
+function handleWebSocketPriceTick(data) {
+    if (!data || isNaN(data.price)) return;
+    const price = parseFloat(data.price);
+    const sym = data.symbol || currentSubscribedSymbol || "ASSET";
+
+    if (!liveQuoteData) {
+        liveQuoteData = resolveLocalAssetMeta(sym);
+    }
+    const prevPrice = liveQuoteData.price || price;
+    liveQuoteData.price = price;
+
+    const currSymbol = liveQuoteData.currency === "INR" ? "₹" : "$";
+    const marketTag = document.getElementById("entryMarketPriceTag");
+    const banner = document.getElementById("liveQuoteBanner");
+    const curLabel = document.getElementById("currencySymbolLabel");
+
+    if (curLabel) curLabel.textContent = currSymbol;
+    if (marketTag) marketTag.textContent = `${currSymbol}${price.toFixed(2)}`;
+
+    if (banner) {
+        banner.style.display = "block";
+        document.getElementById("lqName").textContent = liveQuoteData.name || sym;
+        document.getElementById("lqSymbol").textContent = `(${sym})`;
+        document.getElementById("lqExchange").textContent = `${liveQuoteData.exchange || currentMarket} • ${liveQuoteData.currency || 'USD'}`;
+        document.getElementById("lqPrice").textContent = currSymbol + price.toFixed(2);
+
+        const changeEl = document.getElementById("lqChange");
+        if (changeEl) {
+            const diff = price - prevPrice;
+            const pct = prevPrice > 0 ? ((diff / prevPrice) * 100).toFixed(2) : "0.00";
+            const isPos = diff >= 0;
+            if (Math.abs(diff) > 0.0001) {
+                changeEl.textContent = `${isPos ? '+' : ''}${pct}%`;
+                changeEl.style.color = isPos ? "#10b981" : "#ef4444";
+            }
+        }
+    }
+
+    // Dynamic entry price feedback
+    const entryInput = document.getElementById("tradeEntryPriceInput");
+    if (entryInput) {
+        const currentEntry = parseFloat(entryInput.value);
+        if (!isNaN(currentEntry) && currentEntry > 0) {
+            const diff = currentEntry - price;
+            const pctDiff = ((diff / price) * 100).toFixed(2);
+            const sign = diff >= 0 ? "+" : "";
+            updateEntryFeedback(`Live: ${currSymbol}${price.toFixed(2)} (Your entry is ${sign}${diff.toFixed(2)} / ${sign}${pctDiff}%)`, "#38bdf8");
+        }
+    }
+}
+
+function fetchLiveMarketPrice(forceUpdate = false) {
+    const symInput = document.getElementById("tradeSymbolInput");
+    if (!symInput || !symInput.value.trim()) {
+        const feedback = document.getElementById("livePriceFeedback");
+        if (feedback) feedback.textContent = "Please enter a symbol first.";
+        return;
+    }
+    subscribeSymbolWebSocket(symInput.value.trim(), forceUpdate);
+}
+
+function applyLivePriceToEntry(flash = false) {
+    const entryInput = document.getElementById("tradeEntryPriceInput");
+    if (!entryInput) return;
+
+    if (liveQuoteData && liveQuoteData.price) {
+        entryInput.value = parseFloat(liveQuoteData.price).toFixed(2);
+        highlightPriceInput(entryInput);
+        const btn = document.getElementById("btnFillMarketPrice");
+        if (btn) {
+            btn.classList.add("filled");
+            setTimeout(() => btn.classList.remove("filled"), 2000);
+        }
+        const currSymbol = liveQuoteData.currency === "INR" ? "₹" : "$";
+        updateEntryFeedback(`Market price (${currSymbol}${entryInput.value}) applied ✓`, "#10b981");
+        recalculateCockpitRisk();
+    } else {
+        const symInput = document.getElementById("tradeSymbolInput");
+        if (symInput && symInput.value.trim()) {
+            subscribeSymbolWebSocket(symInput.value.trim(), true);
+        }
+    }
+}
+
+function highlightPriceInput(inputEl) {
+    if (!inputEl) return;
+    inputEl.classList.add("input-flash-success");
+    setTimeout(() => inputEl.classList.remove("input-flash-success"), 1200);
+}
+
+function updateEntryFeedback(msg, color = "#94a3b8") {
+    const el = document.getElementById("entryPriceStatus");
+    if (el) {
+        el.textContent = msg;
+        el.style.color = color;
+    }
+}
+
+// -------------------------------------------------------------
+// Quick SL & Target Percentage Helpers
+// -------------------------------------------------------------
+function applyStopLossPercent(pct) {
+    const entry = parseFloat(document.getElementById("tradeEntryPriceInput")?.value);
+    const slInput = document.getElementById("tradeStopLossInput");
+    if (isNaN(entry) || entry <= 0 || !slInput) {
+        alert("Please enter a valid Entry Price first.");
+        return;
+    }
+
+    const factor = pct / 100.0;
+    let sl = 0;
+    if (currentTradeDirection === "BUY") {
+        sl = entry * (1 - factor);
+    } else {
+        sl = entry * (1 + factor);
+    }
+
+    slInput.value = sl.toFixed(2);
+    recalculateCockpitRisk();
+}
+
+function applyTargetRR(rrMultiplier) {
+    const entry = parseFloat(document.getElementById("tradeEntryPriceInput")?.value);
+    const sl = parseFloat(document.getElementById("tradeStopLossInput")?.value);
+    const targetInput = document.getElementById("tradeTargetInput");
+
+    if (isNaN(entry) || entry <= 0) {
+        alert("Please enter a valid Entry Price first.");
+        return;
+    }
+    if (isNaN(sl) || sl <= 0) {
+        alert("Please enter a Stop Loss first to calculate Target R:R.");
+        return;
+    }
+
+    const riskDistance = Math.abs(entry - sl);
+    let target = 0;
+    if (currentTradeDirection === "BUY") {
+        target = entry + (riskDistance * rrMultiplier);
+    } else {
+        target = entry - (riskDistance * rrMultiplier);
+    }
+
+    if (targetInput) {
+        targetInput.value = Math.max(0.01, target).toFixed(2);
+        recalculateCockpitRisk();
+    }
+}
+
+// -------------------------------------------------------------
+// 1-Click Position Sizing (Auto-calculate Quantity based on Risk %)
+// -------------------------------------------------------------
+function applyRiskSizing(riskPercent) {
+    const entry = parseFloat(document.getElementById("tradeEntryPriceInput")?.value);
+    const sl = parseFloat(document.getElementById("tradeStopLossInput")?.value);
+    const qtyInput = document.getElementById("tradeQuantityInput");
+    const feedback = document.getElementById("sizingFeedback");
+
+    if (isNaN(entry) || isNaN(sl) || entry <= 0 || sl <= 0) {
+        alert("Please specify Entry Price and Stop Loss first to auto-size position.");
+        return;
+    }
+
+    const riskPerUnit = Math.abs(entry - sl);
+    if (riskPerUnit <= 0) {
+        alert("Entry Price and Stop Loss cannot be identical.");
+        return;
+    }
+
+    const effectiveBalance = Math.max(1000.0, Math.abs(userAccountBalance));
+    const maxDollarRisk = effectiveBalance * (riskPercent / 100.0);
+    const computedQty = Math.max(0.01, Math.abs(maxDollarRisk / riskPerUnit));
+
+    if (qtyInput) {
+        qtyInput.value = computedQty >= 1 ? computedQty.toFixed(2) : computedQty.toFixed(4);
+    }
+
+    if (feedback) {
+        feedback.textContent = `Auto-sized to ${riskPercent}% risk ($${maxDollarRisk.toFixed(2)}) based on $${riskPerUnit.toFixed(2)} SL distance.`;
+        feedback.style.color = "#10b981";
+    }
+
+    recalculateCockpitRisk();
+}
+
+// -------------------------------------------------------------
+// Psychology & Conviction Helpers
+// -------------------------------------------------------------
+function selectMood(mood, elem) {
+    const hiddenMood = document.getElementById("hiddenEmotionBefore");
+    if (hiddenMood) hiddenMood.value = mood;
+
+    document.querySelectorAll(".mood-card").forEach(c => c.classList.remove("active"));
+    elem.classList.add("active");
+
+    const label = document.getElementById("currentMoodLabel");
+    if (label) label.textContent = mood;
+
+    recalculateCockpitRisk();
+}
+
+function selectConviction(num, elem) {
+    updateConvictionUI(num);
+}
+
+function updateConvictionUI(num) {
+    const hiddenConf = document.getElementById("hiddenConfidenceInput");
+    if (hiddenConf) hiddenConf.value = num;
+
+    document.querySelectorAll(".conviction-btn").forEach((btn, idx) => {
+        if (idx + 1 === num) {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+    });
+
+    const label = document.getElementById("convictionLabel");
+    if (label) {
+        let desc = "Low Conviction";
+        if (num >= 8) desc = "A+ Setup / High Conviction";
+        else if (num >= 6) desc = "Solid Setup";
+        else if (num >= 4) desc = "Moderate Conviction";
+        label.textContent = `${num} / 10 (${desc})`;
+    }
+}
+
+function setStrategyTag(tag) {
+    const stratInput = document.getElementById("tradeStrategyInput");
+    if (stratInput) stratInput.value = tag;
+    recalculateCockpitRisk();
+}
+
+function setTimeframeTag(tf) {
+    const tfInput = document.getElementById("tradeTimeframeInput");
+    if (tfInput) tfInput.value = tf;
+}
+
+// -------------------------------------------------------------
+// Pre-Flight Execution Gate Checklist Engine
+// -------------------------------------------------------------
+function updatePreFlightChecklist(entry, sl, target, qty, capitalRiskPct, rrRatio) {
+    const chkSlBadge = document.getElementById("chkStopLossBadge");
+    const chkRRBadge = document.getElementById("chkRRBadge");
+    const chkRiskBadge = document.getElementById("chkRiskLimitBadge");
+    const chkStratBadge = document.getElementById("chkStrategyBadge");
+    const chkMoodBadge = document.getElementById("chkMindsetBadge");
+    const gateBadge = document.getElementById("preFlightGateBadge");
+    const tp1Val = document.getElementById("tp1Val");
+    const tp2Val = document.getElementById("tp2Val");
+
+    let passedCount = 0;
+
+    // 1. Stop Loss Defined
+    if (chkSlBadge) {
+        if (!isNaN(sl) && sl > 0) {
+            chkSlBadge.textContent = "Protected ✓";
+            chkSlBadge.className = "check-status-badge check-status-pass";
+            passedCount++;
+        } else {
+            chkSlBadge.textContent = "Missing SL";
+            chkSlBadge.className = "check-status-badge check-status-fail";
+        }
+    }
+
+    // 2. Asymmetric R:R
+    if (chkRRBadge) {
+        if (rrRatio >= 1.5) {
+            chkRRBadge.textContent = `1:${rrRatio.toFixed(1)} R (Favorable) ✓`;
+            chkRRBadge.className = "check-status-badge check-status-pass";
+            passedCount++;
+        } else if (rrRatio >= 1.0) {
+            chkRRBadge.textContent = `1:${rrRatio.toFixed(1)} R (Low)`;
+            chkRRBadge.className = "check-status-badge check-status-warn";
+        } else {
+            chkRRBadge.textContent = (isNaN(target) || target <= 0) ? "Awaiting Target" : `1:${rrRatio.toFixed(1)} R (Unfavorable)`;
+            chkRRBadge.className = "check-status-badge check-status-fail";
+        }
+    }
+
+    // 3. Risk <= 2.0%
+    if (chkRiskBadge) {
+        if (capitalRiskPct > 0 && capitalRiskPct <= 2.0) {
+            chkRiskBadge.textContent = `${capitalRiskPct.toFixed(1)}% (Compliant) ✓`;
+            chkRiskBadge.className = "check-status-badge check-status-pass";
+            passedCount++;
+        } else if (capitalRiskPct > 2.0) {
+            chkRiskBadge.textContent = `${capitalRiskPct.toFixed(1)}% (Over 2% Rule!)`;
+            chkRiskBadge.className = "check-status-badge check-status-fail";
+        } else {
+            chkRiskBadge.textContent = "0.0%";
+            chkRiskBadge.className = "check-status-badge check-status-pass";
+            passedCount++;
+        }
+    }
+
+    // 4. Strategy Setup
+    if (chkStratBadge) {
+        const stratInput = document.getElementById("tradeStrategyInput")?.value?.trim();
+        if (stratInput) {
+            chkStratBadge.textContent = `${stratInput} ✓`;
+            chkStratBadge.className = "check-status-badge check-status-pass";
+            passedCount++;
+        } else {
+            chkStratBadge.textContent = "Select Below";
+            chkStratBadge.className = "check-status-badge check-status-warn";
+        }
+    }
+
+    // 5. Mindset Discipline
+    if (chkMoodBadge) {
+        const moodVal = document.getElementById("hiddenEmotionBefore")?.value || "Calm";
+        if (moodVal === "FOMO" || moodVal === "Greed") {
+            chkMoodBadge.textContent = `${moodVal} Alert! ⚠️`;
+            chkMoodBadge.className = "check-status-badge check-status-warn";
+        } else {
+            chkMoodBadge.textContent = `${moodVal} ✓`;
+            chkMoodBadge.className = "check-status-badge check-status-pass";
+            passedCount++;
+        }
+    }
+
+    // Multi-Stage Targets (TP1 & TP2)
+    if (!isNaN(entry) && !isNaN(sl) && entry > 0 && sl > 0) {
+        const riskDistance = Math.abs(entry - sl);
+        let tp1 = currentTradeDirection === "BUY" ? entry + (riskDistance * 1.5) : entry - (riskDistance * 1.5);
+        let tp2 = currentTradeDirection === "BUY" ? entry + (riskDistance * 3.0) : entry - (riskDistance * 3.0);
+        if (tp1Val) tp1Val.textContent = "$" + Math.max(0.01, tp1).toFixed(2);
+        if (tp2Val) tp2Val.textContent = "$" + Math.max(0.01, tp2).toFixed(2);
+    } else {
+        if (tp1Val) tp1Val.textContent = "—";
+        if (tp2Val) tp2Val.textContent = "—";
+    }
+
+    // Overall Gate Badge & Aura Copilot Guidance
+    const copilotText = document.getElementById("auraCopilotText");
+    if (gateBadge) {
+        if (passedCount === 5) {
+            gateBadge.textContent = "READY TO EXECUTE ✓ (5/5)";
+            gateBadge.className = "check-status-badge check-status-pass";
+            if (copilotText) {
+                copilotText.innerHTML = "<strong style='color:#10b981;'>Aura Clearance:</strong> High-probability setup parameters. Asymmetric R:R and capital risk compliant. Trade authorized.";
+            }
+        } else if (passedCount >= 3) {
+            gateBadge.textContent = `Passing (${passedCount}/5)`;
+            gateBadge.className = "check-status-badge check-status-warn";
+            if (copilotText) {
+                if (chkSlBadge && chkSlBadge.className.includes("fail")) {
+                    copilotText.innerHTML = "<strong style='color:#ef4444;'>Aura Risk Alert:</strong> Stop Loss is undefined. Define your risk ceiling before entering.";
+                } else if (capitalRiskPct > 2.0) {
+                    copilotText.innerHTML = "<strong style='color:#f59e0b;'>Aura Sizing Alert:</strong> Risking " + capitalRiskPct.toFixed(1) + "% (>2% limit). Click 'Rec. 2% Size' to normalize position size.";
+                } else {
+                    copilotText.innerHTML = "<strong style='color:#38bdf8;'>Aura Guidance:</strong> Complete strategy setup tag and ensure R:R is &ge; 1:1.5 to protect edge.";
+                }
+            }
+        } else {
+            gateBadge.textContent = `Incomplete (${passedCount}/5)`;
+            gateBadge.className = "check-status-badge check-status-fail";
+            if (copilotText) {
+                copilotText.innerHTML = "<strong style='color:#94a3b8;'>Aura Diagnostic:</strong> Setup incomplete. Set entry, stop loss, and target to evaluate execution quality.";
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// Live Risk & Cockpit Calculation Engine
+// -------------------------------------------------------------
+function recalculateCockpitRisk() {
+    const entry = parseFloat(document.getElementById("tradeEntryPriceInput")?.value);
+    const sl = parseFloat(document.getElementById("tradeStopLossInput")?.value);
+    const target = parseFloat(document.getElementById("tradeTargetInput")?.value);
+    const qty = parseFloat(document.getElementById("tradeQuantityInput")?.value) || 0;
+    const symbol = document.getElementById("tradeSymbolInput")?.value?.trim() || "Asset";
+
+    const badge = document.getElementById("tbCockpitBadge");
+    const riskDollarEl = document.getElementById("tbRiskDollar");
+    const rewardDollarEl = document.getElementById("tbRewardDollar");
+    const rrLargeEl = document.getElementById("tbRRLarge");
+    const riskPctEl = document.getElementById("tbRiskPercent");
+    const recQtyEl = document.getElementById("tbRecQty");
+    const riskTrack = document.getElementById("tbGaugeRisk");
+    const rewardTrack = document.getElementById("tbGaugeReward");
+    const riskPctText = document.getElementById("tbRiskPctText");
+    const positionValText = document.getElementById("tbPositionValText");
+    const alertBanner = document.getElementById("tbAlertBanner");
+    const mainActionText = document.getElementById("btnMainActionText");
+    const subActionText = document.getElementById("btnSubActionText");
+
+    // Position Value & Capital Allocation HUD
+    const posValEl = document.getElementById("posTotalValue");
+    const posEquityEl = document.getElementById("posEquityPct");
+    if (!isNaN(entry) && entry > 0 && qty > 0) {
+        const posVal = entry * qty;
+        if (positionValText) positionValText.textContent = `Position Value: $${posVal.toFixed(2)}`;
+        if (posValEl) posValEl.textContent = `$${posVal.toFixed(2)}`;
+        if (posEquityEl) {
+            const allocPct = userAccountBalance > 0 ? (posVal / userAccountBalance) * 100.0 : 0;
+            posEquityEl.textContent = `${allocPct.toFixed(1)}% of Capital`;
+            posEquityEl.style.color = allocPct > 50 ? "#f59e0b" : "#38bdf8";
+        }
+    } else {
+        if (positionValText) positionValText.textContent = `Position Value: —`;
+        if (posValEl) posValEl.textContent = `$0.00`;
+        if (posEquityEl) {
+            posEquityEl.textContent = `0.0% of Balance`;
+            posEquityEl.style.color = "#38bdf8";
+        }
+    }
+
+    // If incomplete
+    if (isNaN(entry) || isNaN(sl) || entry <= 0 || sl <= 0) {
+        if (badge) {
+            badge.textContent = "Awaiting Entry & SL";
+            badge.style.background = "rgba(255,255,255,0.1)";
+            badge.style.color = "#94a3b8";
+        }
+        if (riskDollarEl) riskDollarEl.textContent = "—";
+        if (rewardDollarEl) rewardDollarEl.textContent = "—";
+        if (rrLargeEl) rrLargeEl.textContent = "R:R —";
+        if (riskPctEl) riskPctEl.textContent = "—";
+        if (recQtyEl) recQtyEl.textContent = "—";
+        if (riskPctText) riskPctText.textContent = "Capital Risk: —%";
+        if (alertBanner) alertBanner.style.display = "none";
+
+        if (mainActionText) mainActionText.textContent = `${currentTradeDirection === 'BUY' ? '🚀 Open Long' : '🔻 Open Short'} ${symbol}`;
+        if (subActionText) subActionText.textContent = qty > 0 ? `${qty} units @ $${entry || 0}` : "Enter price & quantity to execute";
+
+        updatePreFlightChecklist(entry, sl, target, qty, 0, 0);
+        return;
+    }
+
+    const riskPerUnit = Math.abs(entry - sl);
+    const totalRisk = riskPerUnit * qty;
+    if (riskDollarEl) riskDollarEl.textContent = "$" + totalRisk.toFixed(2);
+
+    // Capital risk %
+    const capitalRiskPct = userAccountBalance > 0 ? (totalRisk / userAccountBalance) * 100.0 : 0;
+    if (riskPctEl) {
+        riskPctEl.textContent = capitalRiskPct.toFixed(2) + "%";
+        riskPctEl.style.color = capitalRiskPct > 2.0 ? "#ef4444" : "#10b981";
+    }
+    if (riskPctText) {
+        riskPctText.textContent = `Capital Risk: ${capitalRiskPct.toFixed(1)}% of $${userAccountBalance.toFixed(0)}`;
+    }
+
+    // Recommended 2% size
+    if (riskPerUnit > 0 && recQtyEl) {
+        const allowedRisk = userAccountBalance * 0.02;
+        const recQty = allowedRisk / riskPerUnit;
+        recQtyEl.textContent = (recQty >= 1 ? recQty.toFixed(1) : recQty.toFixed(3)) + " units";
+    }
+
+    let warnings = [];
+    if (capitalRiskPct > 2.0) {
+        const recUnits = (userAccountBalance * 0.02 / riskPerUnit).toFixed(1);
+        warnings.push(`⚠️ Capital Risk (${capitalRiskPct.toFixed(1)}%) violates the 2% maximum rule. Recommended position size is ~${recUnits} units.`);
+    }
+
+    // Potential Reward & R:R
+    let totalReward = 0;
+    let rrRatio = 0;
+    if (!isNaN(target) && target > 0) {
+        const rewardPerUnit = Math.abs(target - entry);
+        totalReward = rewardPerUnit * qty;
+        if (rewardDollarEl) rewardDollarEl.textContent = "$" + totalReward.toFixed(2);
+
+        if (riskPerUnit > 0) {
+            rrRatio = rewardPerUnit / riskPerUnit;
+            if (rrLargeEl) {
+                rrLargeEl.textContent = `1:${rrRatio.toFixed(2)} R:R`;
+                rrLargeEl.style.color = rrRatio >= 1.5 ? "#10b981" : (rrRatio >= 1.0 ? "#f59e0b" : "#ef4444");
+            }
+
+            // Split Gauge Bar Width
+            const totalBar = riskPerUnit + rewardPerUnit;
+            const riskWidthPct = Math.max(15, Math.min(85, (riskPerUnit / totalBar) * 100));
+            if (riskTrack) riskTrack.style.width = riskWidthPct + "%";
+            if (rewardTrack) rewardTrack.style.width = (100 - riskWidthPct) + "%";
+
+            if (rrRatio < 1.0) {
+                warnings.push(`⚠️ Suboptimal Risk:Reward (1:${rrRatio.toFixed(2)}). Aura recommends at least 1:1.5 for positive statistical expectancy.`);
+            }
+        }
+    } else {
+        if (rewardDollarEl) rewardDollarEl.textContent = "—";
+        if (rrLargeEl) {
+            rrLargeEl.textContent = "R:R —";
+            rrLargeEl.style.color = "";
+        }
+    }
+
+    updatePreFlightChecklist(entry, sl, target, qty, capitalRiskPct, rrRatio);
+
+    // Status Badge
+    if (badge) {
+        if (warnings.length > 0) {
+            badge.textContent = "Review Guardrails ⚠️";
+            badge.style.background = "rgba(239, 68, 68, 0.25)";
+            badge.style.color = "#f87171";
+        } else {
+            badge.textContent = "Pre-Flight Validated ✓";
+            badge.style.background = "rgba(16, 185, 129, 0.25)";
+            badge.style.color = "#34d399";
+        }
+    }
+
+    // Alert Banner
+    if (alertBanner) {
+        if (warnings.length > 0) {
+            alertBanner.style.display = "block";
+            alertBanner.innerHTML = warnings.join("<br>");
+        } else {
+            alertBanner.style.display = "none";
+        }
+    }
+
+    // Dynamic Submit Button Label
+    if (mainActionText) {
+        const actionWord = currentMode === "LIVE" ? "Open" : "Save";
+        mainActionText.textContent = `${currentTradeDirection === 'BUY' ? '🚀 ' + actionWord + ' Long' : '🔻 ' + actionWord + ' Short'} ${symbol}`;
+    }
+    if (subActionText) {
+        if (totalRisk > 0 && totalReward > 0) {
+            subActionText.textContent = `Risk $${totalRisk.toFixed(2)} (${capitalRiskPct.toFixed(1)}%) to make $${totalReward.toFixed(2)} (1:${rrRatio.toFixed(1)} R:R)`;
+        } else if (totalRisk > 0) {
+            subActionText.textContent = `Risking $${totalRisk.toFixed(2)} (${capitalRiskPct.toFixed(1)}% of capital) • ${qty} units`;
+        } else {
+            subActionText.textContent = `${qty} units @ $${entry.toFixed(2)}`;
+        }
+    }
+
+    // Check Historical Mode Realized P/L
+    if (currentMode === "HISTORY") {
+        const exitPrice = parseFloat(document.getElementById("tradeExitPriceInput")?.value);
+        const pnlBox = document.getElementById("historicalPnlBox");
+        const pnlVal = document.getElementById("historicalPnlVal");
+        if (!isNaN(exitPrice) && exitPrice > 0 && pnlBox && pnlVal) {
+            pnlBox.style.display = "block";
+            let pnl = 0;
+            if (currentTradeDirection === "BUY") {
+                pnl = (exitPrice - entry) * qty;
+            } else {
+                pnl = (entry - exitPrice) * qty;
+            }
+            const isProfit = pnl >= 0;
+            pnlVal.textContent = (isProfit ? "+$" : "-$") + Math.abs(pnl).toFixed(2);
+            pnlVal.style.color = isProfit ? "#10b981" : "#ef4444";
+        } else if (pnlBox) {
+            pnlBox.style.display = "none";
+        }
+    }
+
+    scheduleEvidenceBoardFetch(false);
+}
+
+// -------------------------------------------------------------
+// Case-Based Intelligence Layer: Evidence Board & Dual Score Client
+// -------------------------------------------------------------
+let ebDebounceTimer = null;
+
+function scheduleEvidenceBoardFetch(immediate = false) {
+    clearTimeout(ebDebounceTimer);
+    if (immediate) {
+        fetchEvidenceBoard();
+        fetchInstitutionalBlueprint();
+    } else {
+        ebDebounceTimer = setTimeout(() => {
+            fetchEvidenceBoard();
+            fetchInstitutionalBlueprint();
+        }, 450);
+    }
+}
+
+let institutionalBlueprintData = null;
+
+function fetchInstitutionalBlueprint() {
+    const symbol = document.getElementById("tradeSymbolInput")?.value?.trim();
+    if (!symbol) return;
+
+    const strategy = document.getElementById("tradeStrategyInput")?.value?.trim() || "Breakout";
+    const entry = parseFloat(document.getElementById("tradeEntryPriceInput")?.value) || 100.0;
+    const sl = parseFloat(document.getElementById("tradeStopLossInput")?.value) || "";
+    const target = parseFloat(document.getElementById("tradeTargetInput")?.value) || "";
+    const tradeType = currentTradeDirection || "BUY";
+
+    const url = `/trades/institutional_blueprint?symbol=${encodeURIComponent(symbol)}&strategy=${encodeURIComponent(strategy)}&price=${entry}&stop_loss=${sl}&target=${target}&type=${encodeURIComponent(tradeType)}`;
+
+    fetch(url)
+        .then(res => {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.json();
+        })
+        .then(data => {
+            renderInstitutionalBlueprint(data);
+        })
+        .catch(err => {
+            console.warn("Institutional blueprint fetch failed:", err);
+        });
+}
+
+function renderInstitutionalBlueprint(data) {
+    if (!data) return;
+    institutionalBlueprintData = data;
+
+    // 1. Confluence
+    const conf = data.confluence || {};
+    const cScore = Math.round(conf.score || 50);
+    const cEl = document.getElementById("ipbConfluenceScore");
+    const cBar = document.getElementById("ipbConfluenceBar");
+    const cFactors = document.getElementById("ipbConfluenceFactors");
+    const rBadge = document.getElementById("ipbRatingBadge");
+
+    if (cEl) {
+        cEl.textContent = `${cScore} / 100`;
+        cEl.style.color = cScore >= 80 ? "#10b981" : (cScore >= 60 ? "#38bdf8" : "#f87171");
+    }
+    if (cBar) {
+        cBar.style.width = `${cScore}%`;
+        cBar.style.background = cScore >= 80 ? "#10b981" : (cScore >= 60 ? "#0284c7" : "#ef4444");
+    }
+    if (rBadge) {
+        rBadge.textContent = conf.rating ? conf.rating.replace(/_/g, " ") : "Institutional Engine";
+    }
+    if (cFactors && conf.factors) {
+        cFactors.innerHTML = conf.factors.map(f => `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>${f.passed ? '✅' : '⚠️'} ${f.name}</span>
+                <span style="opacity: 0.75; font-size: 0.68rem; color: ${f.passed ? '#34d399' : '#fca5a5'};">${f.pts}/20 pts</span>
+            </div>
+        `).join("");
+    }
+
+    // 2. Expected Value
+    const ev = data.expected_value || {};
+    const evBadge = document.getElementById("ipbEvRBadge");
+    const evVerdict = document.getElementById("ipbEvVerdictText");
+    const evPerUnit = document.getElementById("ipbEvPerUnitText");
+
+    if (evBadge) {
+        const sign = ev.ev_r >= 0 ? "+" : "";
+        evBadge.textContent = `${sign}${ev.ev_r} R`;
+        evBadge.style.color = ev.ev_r > 0 ? "#10b981" : "#f87171";
+    }
+    if (evVerdict) {
+        evVerdict.innerHTML = `<strong>${ev.is_positive ? 'Positive Edge' : 'Caution'}:</strong> ${ev.verdict}`;
+    }
+    if (evPerUnit) {
+        const sign = ev.ev_dollar_per_unit >= 0 ? "+$" : "-$";
+        evPerUnit.textContent = `Mathematical EV per share: ${sign}${Math.abs(ev.ev_dollar_per_unit).toFixed(2)} (Win Prob: ${ev.win_probability}%)`;
+    }
+
+    // 3. Half-Kelly Sizing
+    const sz = data.sizing || {};
+    const kFrac = document.getElementById("ipbHalfKellyFraction");
+    const kRisk = document.getElementById("ipbEffectiveRiskVal");
+    const kDollar = document.getElementById("ipbAllocatedRiskDollar");
+    const kUnits = document.getElementById("ipbSuggestedUnitsVal");
+    const kQtyBtn = document.getElementById("ipbKellySuggestedQtyBtn");
+
+    if (kFrac) kFrac.textContent = `${sz.half_kelly_pct || 0}%`;
+    if (kRisk) kRisk.textContent = `${sz.effective_risk_pct || 0}%`;
+    if (kDollar) kDollar.textContent = `$${sz.allocated_risk_dollars || 0}`;
+    if (kUnits) kUnits.textContent = `${sz.suggested_quantity || 1} Units`;
+    if (kQtyBtn) kQtyBtn.textContent = `${sz.suggested_quantity || 1}`;
+
+    // 4. Target Ladder
+    const lad = data.target_ladder || {};
+    const tiers = lad.tiers || [];
+    const invEl = document.getElementById("ipbInvalidationBadge");
+    const tp1Price = document.getElementById("ipbTp1Price");
+    const tp2Price = document.getElementById("ipbTp2Price");
+    const tp3Price = document.getElementById("ipbTp3Price");
+
+    if (invEl) invEl.textContent = `Structural Invalidation: $${lad.invalidation_price || '--'}`;
+    if (tiers[0] && tp1Price) tp1Price.textContent = `$${tiers[0].price}`;
+    if (tiers[1] && tp2Price) tp2Price.textContent = `$${tiers[1].price}`;
+    if (tiers[2] && tp3Price) tp3Price.textContent = `$${tiers[2].price}`;
+
+    // 5. Devil's Advocate Pre-Mortem
+    const da = data.devils_advocate || {};
+    const daText = document.getElementById("ipbDevilsAdvocateText");
+    const daSource = document.getElementById("ipbDevilsAdvocateSource");
+
+    if (daText && da.analysis) {
+        daText.innerHTML = da.analysis.replace(/\n/g, "<br>");
+    }
+    if (daSource && da.source) {
+        daSource.textContent = da.source.includes("nvidia") ? "⚡ DeepSeek V4.1 (NVIDIA NIM)" : "Institutional Red Team";
+    }
+}
+
+function applyInstitutionalKellySize() {
+    if (institutionalBlueprintData && institutionalBlueprintData.sizing && institutionalBlueprintData.sizing.suggested_quantity) {
+        const qtyInput = document.getElementById("tradeQuantityInput");
+        if (qtyInput) {
+            qtyInput.value = institutionalBlueprintData.sizing.suggested_quantity;
+            recalculateCockpitRisk();
+        }
+    }
+}
+
+function fetchEvidenceBoard() {
+    const symbol = document.getElementById("tradeSymbolInput")?.value?.trim();
+    if (!symbol) return;
+
+    const strategy = document.getElementById("tradeStrategyInput")?.value?.trim() || "Breakout";
+    const entry = parseFloat(document.getElementById("tradeEntryPriceInput")?.value) || 100.0;
+    const sl = parseFloat(document.getElementById("tradeStopLossInput")?.value) || "";
+    const target = parseFloat(document.getElementById("tradeTargetInput")?.value) || "";
+
+    const url = `/trades/evidence_board?symbol=${encodeURIComponent(symbol)}&strategy=${encodeURIComponent(strategy)}&price=${entry}&stop_loss=${sl}&target=${target}`;
+
+    const statusBadge = document.getElementById("ebStatusBadge");
+    if (statusBadge) statusBadge.textContent = "Querying K-NN...";
+
+    fetch(url)
+        .then(res => {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.json();
+        })
+        .then(data => {
+            renderEvidenceBoard(data);
+        })
+        .catch(err => {
+            if (statusBadge) statusBadge.textContent = "Deterministic Retrieval";
+        });
+}
+
+function renderEvidenceBoard(data) {
+    if (!data) return;
+    const statusBadge = document.getElementById("ebStatusBadge");
+    if (statusBadge) statusBadge.textContent = `Matched ${data.analogue_data?.total_analogues_found || 0} Analogues`;
+
+    // 1. Dual Scores
+    const mScore = Math.round(data.market_opportunity_score || 50);
+    const pScore = Math.round(data.personal_fit_score || 50);
+
+    const mVal = document.getElementById("ebMarketScoreVal");
+    const mBar = document.getElementById("ebMarketScoreBar");
+    if (mVal) {
+        mVal.textContent = `${mScore} / 100`;
+        mVal.style.color = mScore >= 70 ? "#34d399" : (mScore >= 50 ? "#38bdf8" : "#f87171");
+    }
+    if (mBar) {
+        mBar.style.width = `${mScore}%`;
+        mBar.style.background = mScore >= 70 ? "#10b981" : (mScore >= 50 ? "#0284c7" : "#ef4444");
+    }
+
+    const pVal = document.getElementById("ebPersonalScoreVal");
+    const pBar = document.getElementById("ebPersonalScoreBar");
+    if (pVal) {
+        pVal.textContent = `${pScore} / 100`;
+        pVal.style.color = pScore >= 70 ? "#34d399" : (pScore >= 50 ? "#a78bfa" : "#f87171");
+    }
+    if (pBar) {
+        pBar.style.width = `${pScore}%`;
+        pBar.style.background = pScore >= 70 ? "#10b981" : (pScore >= 50 ? "#8b5cf6" : "#ef4444");
+    }
+
+    // 2. Avoidance Zone
+    const avoidBanner = document.getElementById("ebAvoidanceBanner");
+    const avoidReasons = document.getElementById("ebAvoidanceReasons");
+    if (avoidBanner && avoidReasons) {
+        if (data.avoidance_zone_triggered && data.avoidance_zone_reasons && data.avoidance_zone_reasons.length > 0) {
+            avoidBanner.style.display = "block";
+            avoidReasons.innerHTML = data.avoidance_zone_reasons.map(r => `<div>• ${r}</div>`).join("");
+        } else {
+            avoidBanner.style.display = "none";
+        }
+    }
+
+    // 3. Historical Analogues Stats
+    const anaData = data.analogue_data || {};
+    const countBadge = document.getElementById("ebAnalogueCountBadge");
+    if (countBadge) countBadge.textContent = `N = ${anaData.total_analogues_found || 0} cases`;
+
+    const wrEl = document.getElementById("ebAnalogueWinRate");
+    if (wrEl) wrEl.textContent = `${anaData.win_rate_pct || 0}%`;
+
+    const medEl = document.getElementById("ebAnalogueMedianReturn");
+    if (medEl) {
+        const medRet = anaData.median_5d_return_pct || 0;
+        medEl.textContent = (medRet >= 0 ? "+" : "") + medRet.toFixed(1) + "%";
+        medEl.style.color = medRet >= 0 ? "#34d399" : "#f87171";
+    }
+
+    const pfEl = document.getElementById("ebAnaloguePF");
+    if (pfEl) pfEl.textContent = (anaData.analogue_profit_factor || 1.0).toFixed(2);
+
+    // 4. Top Cases List
+    const topContainer = document.getElementById("ebTopCasesContainer");
+    if (topContainer) {
+        const cases = anaData.top_historical_cases || [];
+        if (cases.length > 0) {
+            topContainer.innerHTML = cases.slice(0, 3).map(c => `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; padding: 4px 6px; background: rgba(255,255,255,0.02); border-radius: 4px;">
+                    <div>
+                        <strong style="color: #e2e8f0;">${c.case_id}</strong>
+                        <span style="opacity: 0.6; font-size: 0.7rem; margin-left: 4px;">(${c.date})</span>
+                        <span style="opacity: 0.75; font-size: 0.7rem; margin-left: 6px; color: #94a3b8;">${c.catalyst}</span>
+                    </div>
+                    <div style="font-weight: 700; color: ${c.forward_5d_return.startsWith('+') ? '#34d399' : '#f87171'};">
+                        ${c.forward_5d_return}
+                    </div>
+                </div>
+            `).join("");
+        } else {
+            topContainer.innerHTML = `<span style="opacity: 0.6;">No close historical matches found.</span>`;
+        }
+    }
+
+    // 5. Personal Memory
+    const pMemEl = document.getElementById("ebPersonalMemoryText");
+    if (pMemEl) {
+        const ep = data.episodic_data || {};
+        if (ep.total_user_episodes > 0) {
+            pMemEl.innerHTML = `Track record: <strong>${ep.user_setup_win_rate}% win rate</strong> (${ep.total_user_episodes} trades).<br><span style="color: ${ep.premature_exit_count > 0 ? '#fbbf24' : '#34d399'};">${ep.personal_verdict || ''}</span>`;
+        } else {
+            pMemEl.textContent = `No recorded ${data.setup_type} trades in your journal yet.`;
+        }
+    }
+
+    // 6. Company Graph
+    const graphEl = document.getElementById("ebCompanyGraphText");
+    if (graphEl) {
+        const g = data.graph_network || {};
+        const drivers = (g.key_drivers || []).slice(0, 2).join(", ");
+        graphEl.innerHTML = `Sector: <strong>${g.sector || 'Broad Market'}</strong><br>Drivers: ${drivers || 'Standard market liquidity'}`;
+    }
+
+    // 7. Real-Time News & Sentiment
+    const newsData = data.news_data || {};
+    const sentBadge = document.getElementById("ebNewsSentimentBadge");
+    if (sentBadge) {
+        const score = newsData.sentiment_score || 0;
+        const label = newsData.sentiment_label || "NEUTRAL";
+        const sign = score > 0 ? "+" : "";
+        sentBadge.textContent = `${label} (${sign}${score.toFixed(2)})`;
+        if (score >= 0.2) {
+            sentBadge.style.background = "rgba(16, 185, 129, 0.2)";
+            sentBadge.style.color = "#34d399";
+        } else if (score <= -0.2) {
+            sentBadge.style.background = "rgba(239, 68, 68, 0.2)";
+            sentBadge.style.color = "#f87171";
+        } else {
+            sentBadge.style.background = "rgba(255, 255, 255, 0.08)";
+            sentBadge.style.color = "#cbd5e1";
+        }
+    }
+
+    const newsContainer = document.getElementById("ebNewsArticlesContainer");
+    if (newsContainer) {
+        const articles = newsData.articles || [];
+        if (articles.length > 0) {
+            newsContainer.innerHTML = articles.slice(0, 3).map(a => `
+                <div style="margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+                    <div style="font-weight: 600; color: #f1f5f9;">• ${a.headline}</div>
+                    <div style="font-size: 0.68rem; opacity: 0.6; display: flex; gap: 8px; margin-top: 1px;">
+                        <span>${a.source || 'News'}</span>
+                        <span>•</span>
+                        <span>${a.datetime || 'Recent'}</span>
+                    </div>
+                </div>
+            `).join("");
+        } else {
+            newsContainer.innerHTML = `<span style="opacity: 0.6;">No breaking news recorded for this symbol.</span>`;
+        }
+    }
+
+    // 8. Frontier Synthesis Summary
+    const sumEl = document.getElementById("ebFrontierSummaryBox");
+    if (sumEl) {
+        const fr = data.frontier_reasoning;
+        if (fr && fr.verdict) {
+            const badge = fr.source && fr.source.includes("nvidia")
+                ? `<span style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; margin-left: 6px;">⚡ DeepSeek V4.1 (NVIDIA NIM)</span>`
+                : `<span style="background: rgba(99, 102, 241, 0.2); color: #818cf8; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; margin-left: 6px;">Quantitative Synthesis</span>`;
+            sumEl.innerHTML = `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;"><strong>Frontier Synthesis</strong>${badge}</div><div style="white-space: pre-line; line-height: 1.45;">${fr.verdict}</div>`;
+        } else {
+            let text = `Resembles <strong>${anaData.total_analogues_found || 0}</strong> historical setups with a <strong>${anaData.win_rate_pct || 0}%</strong> empirical win rate. `;
+            if (newsData.sentiment_label === "BULLISH") {
+                text += `<span style="color: #34d399;">News catalysts are positive (+${newsData.sentiment_score}).</span> `;
+            } else if (newsData.sentiment_label === "BEARISH") {
+                text += `<span style="color: #fca5a5;">News catalysts reflect headwind pressure (${newsData.sentiment_score}).</span> `;
+            }
+
+            if (data.avoidance_zone_triggered) {
+                text += `<span style="color: #fca5a5;">⚠️ Avoidance Zone warning triggered on personal execution factors.</span>`;
+            } else if (pScore >= 70 && mScore >= 70) {
+                text += `<span style="color: #34d399;">High institutional congruence and strong personal execution fit.</span>`;
+            } else if (mScore >= 70) {
+                text += `Market technicals are favorable, but maintain strict risk sizing to offset behavioral friction.`;
+            } else {
+                text += `Marginal historical setup; require strict confirmation before entry.`;
+            }
+            sumEl.innerHTML = `<strong>Frontier Synthesis:</strong> ` + text;
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// Event Listeners for Live Interaction
+// -------------------------------------------------------------
+const symInputEl = document.getElementById("tradeSymbolInput");
+if (symInputEl) {
+    symInputEl.addEventListener("input", (e) => onSymbolInput(e.target.value));
+    symInputEl.addEventListener("focus", (e) => onSymbolInput(e.target.value));
+    symInputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            closeAutocomplete();
+            fetchLiveMarketPrice(true);
+        }
+    });
+    symInputEl.addEventListener("blur", () => {
+        setTimeout(() => {
+            closeAutocomplete();
+            if (symInputEl.value.trim() && (!liveQuoteData || liveQuoteData.symbol.toUpperCase() !== symInputEl.value.trim().toUpperCase())) {
+                fetchLiveMarketPrice(false);
+            }
+        }, 220);
+    });
+}
+
+// Close autocomplete on outside click
+document.addEventListener("click", (e) => {
+    if (!e.target.closest(".autocomplete-container")) {
+        closeAutocomplete();
+    }
+});
+
+// Real-time market spread comparison on manual entry
+const entryInputEl = document.getElementById("tradeEntryPriceInput");
+if (entryInputEl) {
+    entryInputEl.addEventListener("input", () => {
+        if (liveQuoteData && liveQuoteData.price) {
+            const val = parseFloat(entryInputEl.value);
+            const currSymbol = liveQuoteData.currency === "INR" ? "₹" : "$";
+            if (!isNaN(val) && val > 0) {
+                const diff = val - liveQuoteData.price;
+                if (Math.abs(diff) > 0.001) {
+                    const sign = diff >= 0 ? "+" : "";
+                    const pct = ((diff / liveQuoteData.price) * 100).toFixed(2);
+                    updateEntryFeedback(`Limit Price (${currSymbol}${val.toFixed(2)} vs Market ${currSymbol}${liveQuoteData.price}: ${sign}${diff.toFixed(2)} / ${sign}${pct}%)`, "#38bdf8");
+                } else {
+                    updateEntryFeedback(`Matches Live Market Price (${currSymbol}${liveQuoteData.price}) ✓`, "#10b981");
+                }
+            }
+        }
+    });
+}
+
+[
+    "tradeEntryPriceInput",
+    "tradeStopLossInput",
+    "tradeTargetInput",
+    "tradeQuantityInput",
+    "tradeExitPriceInput",
+    "tradeStrategyInput"
+].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener("input", recalculateCockpitRisk);
+        el.addEventListener("change", recalculateCockpitRisk);
+    }
+});
+
+// Run when DOM ready
+document.addEventListener("DOMContentLoaded", initCockpit);
+</script>

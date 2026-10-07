@@ -1,0 +1,45 @@
+{# Reusable Alert Banner Component & Macro #}
+{% macro alert(category='info', message='', title=None, icon=None, dismissible=True) %}
+{% set bg_color = 'rgba(56, 189, 248, 0.12)' %}
+{% set border_color = 'rgba(56, 189, 248, 0.3)' %}
+{% set text_color = '#38bdf8' %}
+{% set default_icon = 'ℹ️' %}
+
+{% if category in ['danger', 'error', 'critical'] %}
+    {% set bg_color = 'rgba(239, 68, 68, 0.12)' %}
+    {% set border_color = 'rgba(239, 68, 68, 0.35)' %}
+    {% set text_color = '#f87171' %}
+    {% set default_icon = '🚨' %}
+{% elif category in ['warning', 'alert'] %}
+    {% set bg_color = 'rgba(245, 158, 11, 0.12)' %}
+    {% set border_color = 'rgba(245, 158, 11, 0.35)' %}
+    {% set text_color = '#fbbf24' %}
+    {% set default_icon = '⚠️' %}
+{% elif category in ['success'] %}
+    {% set bg_color = 'rgba(16, 185, 129, 0.12)' %}
+    {% set border_color = 'rgba(16, 185, 129, 0.35)' %}
+    {% set text_color = '#34d399' %}
+    {% set default_icon = '✅' %}
+{% endif %}
+
+<div class="alert-banner alert-{{ category }}" style="display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; border-radius: 10px; margin-bottom: 20px; background: {{ bg_color }}; border: 1px solid {{ border_color }}; color: {{ text_color }};">
+    <div style="font-size: 1.15rem; line-height: 1; flex-shrink: 0; margin-top: 1px;">
+        {{ icon or default_icon }}
+    </div>
+    <div style="flex-grow: 1;">
+        {% if title %}
+        <div style="font-weight: 700; font-size: 0.92rem; margin-bottom: 3px; color: #fff;">
+            {{ title }}
+        </div>
+        {% endif %}
+        <div style="font-size: 0.88rem; line-height: 1.45; color: #e2e8f0;">
+            {{ message }}
+        </div>
+    </div>
+    {% if dismissible %}
+    <button type="button" onclick="this.closest('.alert-banner').remove()" style="background: none; border: none; color: inherit; opacity: 0.6; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 4px;" aria-label="Dismiss">
+        &times;
+    </button>
+    {% endif %}
+</div>
+{% endmacro %}

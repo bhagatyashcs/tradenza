@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tradenza{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Core Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css') }}">
+
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="app-layout">
+        
+        <!-- ============================================================ -->
+        <!-- SIDEBAR NAVIGATION (NEW IA)                                  -->
+        <!-- ============================================================ -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="{{ url_for('dashboard.dashboard') }}" class="logo-text">TRADENZA</a>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <!-- 1. HOME: The Command Center -->
+                <a href="{{ url_for('dashboard.dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard.dashboard' %}active{% endif %}">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Home</span>
+                </a>
+                
+                <!-- 2. TRADES: Cockpit & History -->
+                <a href="{{ url_for('trade.trade_history') }}" class="nav-item {% if 'trade' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="crosshair"></i>
+                    <span>Trades</span>
+                </a>
+                
+                <!-- 3. ANALYZE: Patterns & Risk -->
+                <a href="{{ url_for('analytics.analytics_dashboard') }}" class="nav-item {% if 'analytics' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="bar-chart-2"></i>
+                    <span>Analyze</span>
+                </a>
+                
+                <!-- 4. IMPROVE: Trader Profile -->
+                <a href="{{ url_for('digital_twin.digital_twin') }}" class="nav-item {% if 'digital_twin' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="trending-up"></i>
+                    <span>Improve</span>
+                </a>
+                
+                <!-- 5. AURA: Structured Insights -->
+                <a href="{{ url_for('coach.coach') }}" class="nav-item {% if 'coach' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="zap"></i>
+                    <span>Aura</span>
+                </a>
+                
+                <!-- 6. PORTFOLIO: Equity & Drawdown -->
+                <a href="{{ url_for('portfolio.portfolio') }}" class="nav-item {% if 'portfolio' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="pie-chart"></i>
+                    <span>Portfolio</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{{ url_for('settings.settings') }}" class="nav-item" style="margin-bottom: 8px;">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="user-profile">
+                    <div class="user-avatar">
+                        {{ current_user.name[:1]|upper if current_user.is_authenticated and current_user.name else 'T' }}
+                    </div>
+                    <span style="font-size: 13px; font-weight: 500;">
+                        {{ current_user.name if current_user.is_authenticated else 'Trader' }}
+                    </span>
+                    <i data-lucide="log-out" style="margin-left: auto; width: 14px; height: 14px; color: var(--text-secondary);"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- ============================================================ -->
+        <!-- MAIN VIEWPORT                                                -->
+        <!-- ============================================================ -->
+        <main class="main-content">
+            
+            <!-- Topbar HUD -->
+            <header class="topbar">
+                <div class="page-title">
+                    {% block page_title %}Dashboard{% endblock %}
+                </div>
+                <div class="topbar-actions">
+                    <a href="{{ url_for('trade.new_trade') }}" class="btn btn-primary">
+                        <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                        New Trade
+                    </a>
+                </div>
+            </header>
+
+            <!-- Page Content Body -->
+            <div class="page-container">
+                {% block content %}{% endblock %}
+            </div>
+            
+        </main>
+    </div>
+
+    <!-- Initialize Icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

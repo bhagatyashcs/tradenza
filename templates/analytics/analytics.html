@@ -1,0 +1,178 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Analytics | Tradenza{% endblock %}
+
+{% block content %}
+<div class="analytics-layout">
+
+    <div class="page-header" style="margin-bottom: 32px;">
+        <span class="text-caption" style="color: var(--neon-cyan); letter-spacing: 2px; text-transform: uppercase; font-weight: 800; font-size: 0.75rem;">EDGE METRICS</span>
+        <h1 style="font-size: 2.5rem; margin-top: 8px;">Performance Analytics</h1>
+        <p style="color: var(--t-muted); max-width: 600px;">Quantitative analysis of your trading setups, market segments, and statistical expectancy.</p>
+    </div>
+
+    <!-- HIGH-LEVEL EDGE KPIS -->
+    <div class="bento-grid" style="margin-bottom: 32px; grid-auto-rows: minmax(140px, auto);">
+        <div class="bento-item card-3d" style="grid-column: span 3; display: flex; flex-direction: column; justify-content: center; background: rgba(16, 185, 129, 0.05);">
+            <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--t-muted); letter-spacing: 1px;">Expectancy</span>
+            <h2 style="font-size: 2.2rem; font-family: var(--t-mono); font-weight: 800; color: {% if expectancy >= 0 %}var(--neon-green){% else %}var(--neon-red){% endif %}; margin: 8px 0;">
+                {{ user.currency or '$' }}{{ "%.2f"|format(expectancy) }}
+            </h2>
+            <p style="font-size: 0.8rem; color: var(--t-secondary); margin: 0;">Expected gain per trade</p>
+        </div>
+
+        <div class="bento-item card-3d" style="grid-column: span 3; display: flex; flex-direction: column; justify-content: center;">
+            <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--t-muted); letter-spacing: 1px;">Profit Factor</span>
+            <h2 style="font-size: 2.2rem; font-family: var(--t-mono); font-weight: 800; color: var(--neon-cyan); margin: 8px 0;">
+                {{ stats.profit_factor }}
+            </h2>
+            <p style="font-size: 0.8rem; color: var(--t-secondary); margin: 0;">Gross profit / Gross loss</p>
+        </div>
+
+        <div class="bento-item card-3d" style="grid-column: span 3; display: flex; flex-direction: column; justify-content: center;">
+            <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--t-muted); letter-spacing: 1px;">Win Rate</span>
+            <h2 style="font-size: 2.2rem; font-family: var(--t-mono); font-weight: 800; color: #fff; margin: 8px 0;">
+                {{ stats.win_rate }}%
+            </h2>
+            <p style="font-size: 0.8rem; color: var(--t-secondary); margin: 0;">Across {{ total_closed }} closed trades</p>
+        </div>
+
+        <div class="bento-item card-3d" style="grid-column: span 3; display: flex; flex-direction: column; justify-content: center;">
+            <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--t-muted); letter-spacing: 1px;">Avg Win / Loss</span>
+            <div style="display: flex; align-items: baseline; gap: 8px; margin: 8px 0;">
+                <span style="font-size: 1.4rem; font-family: var(--t-mono); font-weight: 700; color: var(--neon-green);">+{{ user.currency or '$' }}{{ "%.2f"|format(stats.average_win or 0) }}</span>
+                <span style="font-size: 1rem; color: var(--t-muted);">/</span>
+                <span style="font-size: 1.2rem; font-family: var(--t-mono); font-weight: 700; color: var(--neon-red);">-{{ user.currency or '$' }}{{ "%.2f"|format(stats.average_loss|abs if stats.average_loss else 0) }}</span>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--t-secondary); margin: 0;">Win/Loss asymmetry</p>
+        </div>
+    </div>
+
+    <!-- STRATEGY PERFORMANCE MATRIX -->
+    <div class="bento-grid" style="margin-bottom: 32px; grid-auto-rows: auto;">
+        <div class="bento-item card-3d" style="grid-column: span 12; padding: 0; overflow: hidden;">
+            <div class="bento-header" style="padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(0,0,0,0.2);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="layers" style="color: var(--neon-cyan);"></i>
+                        </div>
+                        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #fff;">Strategy Edge Matrix</h3>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--t-muted);">Ranked by Net Realized Profit</span>
+                </div>
+            </div>
+
+            {% if strategy_stats %}
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase;">Strategy Setup</th>
+                        <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase;">Trades</th>
+                        <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase;">Win Rate</th>
+                        <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase;">Net P/L</th>
+                        <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase;">Profit Factor</th>
+                        <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase;">Assessment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in strategy_stats %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 16px 24px; font-weight: 700; color: #fff; font-size: 1.05rem;">
+                            {{ item.strategy }}
+                        </td>
+                        <td style="padding: 16px 24px; color: #cbd5e1; font-size: 0.9rem;">
+                            {{ item.count }} ({{ item.wins }}W / {{ item.losses }}L)
+                        </td>
+                        <td style="padding: 16px 24px;">
+                            <span style="font-weight: 700; font-family: var(--t-mono); color: {% if item.win_rate >= 50 %}var(--neon-green){% else %}var(--neon-red){% endif %};">
+                                {{ item.win_rate }}%
+                            </span>
+                        </td>
+                        <td style="padding: 16px 24px; font-weight: 800; font-family: var(--t-mono);">
+                            <span style="color: {% if item.net_pnl >= 0 %}var(--neon-green){% else %}var(--neon-red){% endif %};">
+                                {{ "%+.2f"|format(item.net_pnl) }}
+                            </span>
+                        </td>
+                        <td style="padding: 16px 24px; color: #cbd5e1; font-family: var(--t-mono); font-weight: 700;">
+                            {{ item.profit_factor }}
+                        </td>
+                        <td style="padding: 16px 24px;">
+                            {% if item.net_pnl > 0 and item.win_rate >= 50 %}
+                                <span style="font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; background: rgba(0, 245, 155, 0.15); color: var(--neon-green); font-weight: 700; border: 1px solid rgba(0, 245, 155, 0.3);">Core Edge 🔥</span>
+                            {% elif item.net_pnl >= 0 %}
+                                <span style="font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; background: rgba(0, 210, 255, 0.15); color: var(--neon-cyan); font-weight: 700; border: 1px solid rgba(0, 210, 255, 0.3);">Viable</span>
+                            {% else %}
+                                <span style="font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; background: rgba(255, 51, 102, 0.15); color: var(--neon-red); font-weight: 700; border: 1px solid rgba(255, 51, 102, 0.3);">Negative Alpha ⚠️</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="padding: 60px; text-align: center; color: var(--t-muted);">
+                <i data-lucide="bar-chart-2" style="width: 48px; height: 48px; opacity: 0.5; margin-bottom: 16px;"></i>
+                <p>No closed trades with strategy tags logged yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- MARKET SEGMENTS & TIMING -->
+    <div class="bento-grid" style="grid-auto-rows: auto;">
+        <div class="bento-item card-3d" style="grid-column: span 6;">
+            <div class="bento-header" style="margin-bottom: 20px;">
+                <h3 style="margin: 0;"><i data-lucide="globe" style="width:18px; display:inline-block; margin-right:8px; color:var(--neon-cyan);"></i> Performance by Market</h3>
+            </div>
+            {% if market_stats %}
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                {% for m in market_stats %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 14px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
+                        <div>
+                            <strong style="color: #fff; font-size: 1.05rem;">{{ m.market }}</strong>
+                            <span style="font-size: 0.8rem; color: var(--t-muted); display: block;">{{ m.count }} trades</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-weight: 800; font-family: var(--t-mono); color: {% if m.net_pnl >= 0 %}var(--neon-green){% else %}var(--neon-red){% endif %}; font-size: 1.1rem;">
+                                {{ "%+.2f"|format(m.net_pnl) }}
+                            </span>
+                            <span style="font-size: 0.8rem; color: var(--t-muted); display: block;">{{ m.win_rate }}% win rate</span>
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <p style="color: var(--t-muted); font-size: 0.9rem;">No market trades recorded yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="bento-item card-3d" style="grid-column: span 6;">
+            <div class="bento-header" style="margin-bottom: 20px;">
+                <h3 style="margin: 0;"><i data-lucide="calendar-days" style="width:18px; display:inline-block; margin-right:8px; color:var(--neon-purple);"></i> Day-of-Week Edge</h3>
+            </div>
+            {% if day_stats %}
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                {% for d in day_stats %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 14px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
+                        <div>
+                            <strong style="color: #fff; font-size: 1.05rem;">{{ d.day }}</strong>
+                            <span style="font-size: 0.8rem; color: var(--t-muted); display: block;">{{ d.count }} trades</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-weight: 800; font-family: var(--t-mono); color: {% if d.net_pnl >= 0 %}var(--neon-green){% else %}var(--neon-red){% endif %}; font-size: 1.1rem;">
+                                {{ "%+.2f"|format(d.net_pnl) }}
+                            </span>
+                            <span style="font-size: 0.8rem; color: var(--t-muted); display: block;">{{ d.win_rate }}% win rate</span>
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <p style="color: var(--t-muted); font-size: 0.9rem;">No trade dates recorded yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

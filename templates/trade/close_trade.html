@@ -1,0 +1,220 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}
+Close Trade: {{ trade.symbol }}
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h2>⚡ Close Trade: {{ trade.symbol }}</h2>
+        <p style="opacity:.7;">
+            Lock in your exit, log post-trade psychology, and trigger instant review analysis.
+        </p>
+    </div>
+    <div>
+        <a class="btn" href="{{ url_for('trade.trade_details', trade_id=trade.id) }}">
+            ← Cancel
+        </a>
+    </div>
+</div>
+
+<br>
+
+<div class="dashboard-grid">
+    <!-- Trade Snapshot Card -->
+    <div class="dashboard-card" style="border-left: 4px solid #38bdf8;">
+        <h3>Open Position Snapshot</h3>
+        <hr>
+        <p><strong>Symbol:</strong> {{ trade.symbol }} ({{ trade.market }})</p>
+        <p><strong>Direction:</strong> <span style="font-weight: 700; color: {% if trade.trade_type == 'BUY' %}#10b981{% else %}#ef4444{% endif %};">{{ trade.trade_type }}</span></p>
+        <p><strong>Entry Price:</strong> ${{ "%.2f"|format(trade.entry_price) }}</p>
+        <p><strong>Quantity:</strong> {{ "%.4f"|format(trade.quantity|abs) if (trade.quantity|abs) < 1 else "%.2f"|format(trade.quantity|abs) }}</p>
+        <p><strong>Target:</strong> {% if trade.target %}${{ "%.2f"|format(trade.target) }}{% else %}—{% endif %}</p>
+        <p><strong>Stop Loss:</strong> {% if trade.stop_loss %}${{ "%.2f"|format(trade.stop_loss) }}{% else %}—{% endif %}</p>
+        <p><strong>Entry Time:</strong> {{ (trade.entry_time or trade.created_at).strftime("%d %b %Y %H:%M") }}</p>
+    </div>
+
+    <!-- Close Form Card -->
+    <div class="dashboard-card">
+        <h3>Exit Execution</h3>
+        <hr>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <p>
+                {{ form.exit_price.label }}<br>
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+                    {{ form.exit_price(id="closeExitPriceInput", style="flex: 1;", step="any", placeholder="Enter exit price...") }}
+                    <button type="button" class="btn" id="btnFetchExitQuote" onclick="fetchLiveExitPrice('{{ trade.symbol }}')" style="white-space: nowrap;">
+                        ⚡ Fetch Live Price
+                    </button>
+                </div>
+                <!-- 1-Click Quick Exit Presets -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                    <span style="font-size: 0.78rem; opacity: 0.7; align-self: center;">Quick Fill:</span>
+                    {% if trade.target %}
+                    <button type="button" class="cockpit-chip" onclick="setQuickExitPrice({{ trade.target }})" style="font-size: 0.8rem; padding: 4px 10px; border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; background: rgba(16, 185, 129, 0.1);">
+                        🎯 Target (${{ "%.2f"|format(trade.target) }})
+                    </button>
+                    {% endif %}
+                    {% if trade.stop_loss %}
+                    <button type="button" class="cockpit-chip" onclick="setQuickExitPrice({{ trade.stop_loss }})" style="font-size: 0.8rem; padding: 4px 10px; border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.1);">
+                        🛑 Stop Loss (${{ "%.2f"|format(trade.stop_loss) }})
+                    </button>
+                    {% endif %}
+                    <button type="button" class="cockpit-chip" onclick="setQuickExitPrice({{ trade.entry_price }})" style="font-size: 0.8rem; padding: 4px 10px; border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; background: rgba(56, 189, 248, 0.1);">
+                        📍 Entry Price (${{ "%.2f"|format(trade.entry_price) }})
+                    </button>
+                </div>
+                <span id="exitPriceFeedback" style="display: block; font-size: 0.8rem; margin-top: 6px; color: #94a3b8;"></span>
+            </p>
+
+            <!-- Projected P/L Preview -->
+            <div id="pnlPreviewCard" style="background: rgba(255,255,255,0.04); border-radius: 8px; padding: 12px; margin: 15px 0; display: none;">
+                <div style="font-size: 0.85rem; opacity: 0.8;">Estimated Realized P/L</div>
+                <div id="pnlPreviewValue" style="font-size: 1.5rem; font-weight: 700; margin-top: 4px;">—</div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    {{ form.exit_reason.label }}<br>
+                    {{ form.exit_reason(style="width: 100%;") }}
+                </div>
+                <div>
+                    {{ form.emotion_after.label }}<br>
+                    {{ form.emotion_after(style="width: 100%;") }}
+                </div>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <label style="font-size: 0.85rem; font-weight: 600; opacity: 0.8;">Exit Timestamp (Optional)</label><br>
+                <input type="datetime-local" id="closeExitTimePicker" class="form-control" style="width: 100%;"
+                       onchange="document.getElementById('hiddenCloseExitTime').value = this.value;" />
+                {{ form.exit_time(id="hiddenCloseExitTime", style="display: none;") }}
+                <small style="display: block; opacity: 0.7; margin-top: 4px;">
+                    Defaults to right now if left blank.
+                </small>
+            </div>
+
+            <p>
+                <label style="font-weight: 600;">Exit Post-Mortem & Systematic Reflection</label><br>
+                {{ form.exit_thesis(rows=3, placeholder="Did this trade follow your defined invalidation rules? Did you execute your plan without emotional interference?", style="width: 100%;") }}
+            </p>
+
+            <p>
+                {{ form.notes.label }}<br>
+                {{ form.notes(rows=3, placeholder="General notes, broker execution details, slippage notes...") }}
+            </p>
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                {{ form.submit(class="btn", style="background: #10b981; color: #fff; font-weight: 600;") }}
+                <a class="btn" href="{{ url_for('trade.trade_details', trade_id=trade.id) }}" style="opacity: 0.8;">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const entryPrice = {{ trade.entry_price }};
+const quantity = Math.abs(parseFloat("{{ trade.quantity or 1.0 }}") || 1.0);
+const tradeType = "{{ trade.trade_type }}";
+
+function setQuickExitPrice(val) {
+    const exitInput = document.getElementById("closeExitPriceInput");
+    if (exitInput) {
+        exitInput.value = parseFloat(val).toFixed(2);
+        updatePnlPreview();
+        const feedback = document.getElementById("exitPriceFeedback");
+        if (feedback) {
+            feedback.style.color = "#10b981";
+            feedback.textContent = `Applied preset exit price: $${parseFloat(val).toFixed(2)} ✓`;
+        }
+    }
+}
+
+function updatePnlPreview() {
+    const exitInput = document.getElementById("closeExitPriceInput");
+    const previewCard = document.getElementById("pnlPreviewCard");
+    const previewVal = document.getElementById("pnlPreviewValue");
+
+    if (!exitInput || !exitInput.value) {
+        if (previewCard) previewCard.style.display = "none";
+        return;
+    }
+
+    const exitVal = parseFloat(exitInput.value);
+    if (isNaN(exitVal)) {
+        if (previewCard) previewCard.style.display = "none";
+        return;
+    }
+
+    let pnl = 0;
+    if (tradeType === "BUY") {
+        pnl = (exitVal - entryPrice) * quantity;
+    } else {
+        pnl = (entryPrice - exitVal) * quantity;
+    }
+
+    if (previewCard && previewVal) {
+        previewCard.style.display = "block";
+        const isProfit = pnl >= 0;
+        previewVal.textContent = (isProfit ? "+$" : "-$") + Math.abs(pnl).toFixed(2);
+        previewVal.style.color = isProfit ? "#10b981" : "#ef4444";
+    }
+}
+
+document.getElementById("closeExitPriceInput")?.addEventListener("input", updatePnlPreview);
+
+function fetchLiveExitPrice(symbol) {
+    const feedback = document.getElementById("exitPriceFeedback");
+    const exitInput = document.getElementById("closeExitPriceInput");
+
+    if (feedback) {
+        feedback.style.color = "#94a3b8";
+        feedback.textContent = `Fetching live price for ${symbol}...`;
+    }
+
+    // Auto-normalize shorthand tickers (e.g. USDT -> USDT/USD, BTC -> BTC/USD)
+    let querySym = symbol.trim().toUpperCase();
+    if (querySym === "USDT") querySym = "USDT/USD";
+    else if (querySym === "BTC") querySym = "BTC/USD";
+    else if (querySym === "ETH") querySym = "ETH/USD";
+    else if (querySym === "GOLD") querySym = "GC";
+
+    fetch(`/market/quote?symbol=${encodeURIComponent(querySym)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "error") {
+                if (feedback) {
+                    feedback.style.color = "#f59e0b";
+                    feedback.textContent = `⚠️ Live feed unavailable for ${symbol}. Click Target/SL/Entry quick fill above or enter price manually.`;
+                }
+                return;
+            }
+
+            if (exitInput && data.price) {
+                exitInput.value = parseFloat(data.price).toFixed(2);
+                updatePnlPreview();
+            }
+
+            if (feedback) {
+                feedback.style.color = "#10b981";
+                const isBenchmark = data.is_fallback ? " [Benchmark Reference]" : "";
+                feedback.textContent = `Live quote retrieved: $${data.price} (${data.name || symbol})${isBenchmark} ✓`;
+            }
+        })
+        .catch(err => {
+            if (feedback) {
+                feedback.style.color = "#f59e0b";
+                feedback.textContent = `⚠️ Network offline for ${symbol}. Please use quick presets [Target / SL / Entry] above.`;
+            }
+        });
+}
+</script>
+
+{% endblock %}

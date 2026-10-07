@@ -1,0 +1,26 @@
+{# Reusable Empty State Component & Macro #}
+{% macro empty_state(icon='📊', title='No Data Available', message='Get started by logging your first entry.', action_url=None, action_label=None, secondary_url=None, secondary_label=None) %}
+<div class="empty-state" style="text-align: center; padding: 48px 24px; background: rgba(15, 23, 42, 0.5); border: 1px dashed rgba(255, 255, 255, 0.12); border-radius: 16px; margin: 20px 0;">
+    <div style="font-size: 2.8rem; margin-bottom: 14px; opacity: 0.9; filter: drop-shadow(0 4px 12px rgba(56, 189, 248, 0.2));">
+        {{ icon }}
+    </div>
+    <h3 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin: 0 0 8px 0; letter-spacing: -0.01em;">
+        {{ title }}
+    </h3>
+    <p style="font-size: 0.9rem; color: #94a3b8; max-width: 480px; margin: 0 auto 20px auto; line-height: 1.5;">
+        {{ message }}
+    </p>
+    {% if action_url and action_label %}
+    <div style="display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap;">
+        <a href="{{ action_url }}" class="btn btn-primary" style="padding: 10px 20px; font-weight: 600; border-radius: 8px;">
+            {{ action_label }}
+        </a>
+        {% if secondary_url and secondary_label %}
+        <a href="{{ secondary_url }}" class="btn btn-secondary" style="padding: 10px 18px; font-weight: 600; border-radius: 8px;">
+            {{ secondary_label }}
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}

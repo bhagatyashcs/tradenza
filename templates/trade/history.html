@@ -1,0 +1,161 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Trade Journal | Tradenza{% endblock %}
+
+{% block content %}
+<div class="journal-layout">
+
+    <div class="journal-header" style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 24px;">
+        <div>
+            <h1 style="font-size: 2.2rem; margin-bottom: 8px;">Trade Journal</h1>
+            <p style="color: var(--t-muted);">Review, search and improve every trade.</p>
+        </div>
+        <div style="display:flex; gap:12px;">
+            <a href="{{ url_for('trade.export_trades') }}" class="btn-sm" style="background: rgba(255,255,255,0.05); color: #fff; padding: 10px 16px; border-radius: 10px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1);">
+                <i data-lucide="download"></i> Export
+            </a>
+            <a href="{{ url_for('trade.import_trades') }}" class="btn-sm" style="background: rgba(255,255,255,0.05); color: #fff; padding: 10px 16px; border-radius: 10px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1);">
+                <i data-lucide="upload"></i> Import
+            </a>
+            <a href="{{ url_for('trade.new_trade') }}" class="btn-primary-3d" style="padding: 10px 20px;">
+                <i data-lucide="plus"></i> New Trade
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card-3d filter-bar" style="padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; border-radius: 16px;">
+        <form method="GET" style="display: flex; gap: 16px; width: 100%; align-items: center; margin: 0;">
+            <div style="flex: 1; position: relative;">
+                <i data-lucide="search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--t-muted); width: 18px;"></i>
+                {{ search_form.query(value=query, placeholder="Search Symbol...", style="width:100%; padding: 10px 10px 10px 40px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;") }}
+            </div>
+            <div style="width: 150px;">
+                {{ filter_form.market(style="width:100%; padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;") }}
+            </div>
+            <div style="width: 150px;">
+                {{ filter_form.trade_type(style="width:100%; padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;") }}
+            </div>
+            <div style="width: 150px;">
+                {{ filter_form.status(style="width:100%; padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;") }}
+            </div>
+            <button type="submit" class="btn-sm" style="background: rgba(0, 210, 255, 0.1); color: var(--neon-cyan); padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(0, 210, 255, 0.3); font-weight: 700; cursor: pointer;">
+                Filter
+            </button>
+        </form>
+    </div>
+
+    <!-- Data Grid -->
+    <div class="card-3d" style="padding: 0; overflow: hidden; border-radius: 16px;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">Date</th>
+                    <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">Asset</th>
+                    <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">Action</th>
+                    <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">Entry/Exit</th>
+                    <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">Status</th>
+                    <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">P/L</th>
+                    <th style="padding: 16px 24px; color: var(--t-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">Tools</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if trades.items %}
+                    {% for trade in trades.items %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 16px 24px; color: #cbd5e1; font-size: 0.9rem;">
+                            {{ (trade.entry_time or trade.created_at).strftime("%d %b %Y") if (trade.entry_time or trade.created_at) else "—" }}
+                        </td>
+                        <td style="padding: 16px 24px;">
+                            <div style="font-weight: 700; color: #fff; font-size: 1.05rem;">{{ trade.symbol }}</div>
+                            <div style="font-size: 0.75rem; color: var(--t-muted);">{{ trade.market }}</div>
+                        </td>
+                        <td style="padding: 16px 24px;">
+                            <span style="font-size: 0.7rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; 
+                                {% if trade.trade_type == 'BUY' %}background: rgba(0,245,155,0.15); color: var(--neon-green);{% else %}background: rgba(255,51,102,0.15); color: var(--neon-red);{% endif %}">
+                                {{ trade.trade_type }}
+                            </span>
+                        </td>
+                        <td style="padding: 16px 24px; font-family: var(--t-mono); font-size: 0.9rem; color: #cbd5e1;">
+                            {{ user_curr|default('$') }}{{ "%.2f"|format(trade.entry_price) if trade.entry_price else "—" }}
+                            <div style="color: var(--t-muted); font-size: 0.8rem;">
+                                → {{ user_curr|default('$') }}{{ "%.2f"|format(trade.exit_price) if trade.exit_price else "—" }}
+                            </div>
+                        </td>
+                        <td style="padding: 16px 24px;">
+                            {% if trade.status=="OPEN" %}
+                                <span style="color: var(--neon-cyan); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                                    <span style="width:6px; height:6px; background:var(--neon-cyan); border-radius:50%; box-shadow:0 0 6px var(--neon-cyan);"></span> OPEN
+                                </span>
+                            {% else %}
+                                <span style="color: var(--t-muted); font-weight: 700; font-size: 0.85rem;">CLOSED</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px 24px;">
+                            {% if trade.profit_loss is not none %}
+                                <div style="font-family: var(--t-mono); font-weight: 800; font-size: 1.1rem; color: {% if trade.profit_loss >= 0 %}var(--neon-green){% else %}var(--neon-red){% endif %};">
+                                    {% if trade.profit_loss >= 0 %}+{% endif %}{{ user_curr|default('$') }}{{ "%.2f"|format(trade.profit_loss) }}
+                                </div>
+                                <div style="font-family: var(--t-mono); font-size: 0.8rem; color: {% if trade.realized_r and trade.realized_r >= 0 %}var(--neon-green){% else %}var(--neon-red){% endif %};">
+                                    {% if trade.realized_r %}{{ "%+.1f"|format(trade.realized_r) }}R{% else %}—{% endif %}
+                                </div>
+                            {% else %}
+                                <span style="color: var(--t-muted);">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px 24px;">
+                            <div style="display:flex; gap:8px;">
+                                {% if trade.status=="OPEN" %}
+                                <a href="{{ url_for('trade.close_trade', trade_id=trade.id) }}" class="btn-sm" style="background: rgba(0,245,155,0.2); color: var(--neon-green); padding: 6px 12px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(0,245,155,0.4);">
+                                    Close
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('trade.trade_details', trade_id=trade.id) }}" class="btn-sm" style="background: rgba(255,255,255,0.05); color: #fff; padding: 6px 12px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.1);">
+                                    View
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="padding: 60px; text-align: center;">
+                            <div class="empty-state-mini" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <i data-lucide="inbox" style="width: 48px; height: 48px; color: var(--t-muted); margin-bottom: 16px;"></i>
+                                <h3 style="margin-bottom: 8px; color: #fff;">Journal is Empty</h3>
+                                <p style="color: var(--t-muted); margin-bottom: 24px;">You haven't logged any executions yet.</p>
+                                <a href="{{ url_for('trade.new_trade') }}" class="btn-primary-3d">Record First Trade</a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div style="display: flex; justify-content: center; align-items: center; gap: 24px; margin-top: 24px;">
+        {% if trades.has_prev %}
+        <a href="{{ url_for('trade.trade_history', page=trades.prev_num, query=query, market=filter_form.market.data, trade_type=filter_form.trade_type.data, status=filter_form.status.data) }}" class="btn-sm" style="background: rgba(255,255,255,0.05); color: #fff; padding: 10px 16px; border-radius: 10px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1);">
+            ← Previous
+        </a>
+        {% endif %}
+        <span style="font-weight: 700; color: var(--t-muted);">Page {{ trades.page }} of {{ trades.pages }}</span>
+        {% if trades.has_next %}
+        <a href="{{ url_for('trade.trade_history', page=trades.next_num, query=query, market=filter_form.market.data, trade_type=filter_form.trade_type.data, status=filter_form.status.data) }}" class="btn-sm" style="background: rgba(255,255,255,0.05); color: #fff; padding: 10px 16px; border-radius: 10px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1);">
+            Next →
+        </a>
+        {% endif %}
+    </div>
+
+</div>
+
+<style>
+/* Remove old styles from inputs in filter bar */
+.filter-bar input:focus, .filter-bar select:focus {
+    outline: none;
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+}
+</style>
+{% endblock %}
